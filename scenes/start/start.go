@@ -1,78 +1,48 @@
 package start
 
 import (
+	c "GameFrameworkTM/components"
 	"GameFrameworkTM/engine"
-	"os"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/go-gl/gl/v3.3-core/gl"
 )
 
-// start scene is the main menu
 type Scene struct {
-	menuItems        []string
-	menuFontSize     int32
-	selectedMenuItem int
+	cam      c.Camera
+	skybox   Skybox
+	quadMesh QuadMesh
 }
 
+// Load is called once the scene is switched to
 func (scene *Scene) Load(ctx engine.Context) {
-	scene.menuItems = []string{
-		"See the CUBE", "Exit",
-	}
-	scene.menuFontSize = 80
+	scene.cam = c.NewCamera(c.V3(0, 0, 0), 90, 1.8, 0.0036)
+	scene.skybox = LoadSkybox("assets/skybox.png")
+	// chunkShader := rl.LoadShader("shader/chunk.vert", "shader/chunk.vert")
+	quadShader := rl.LoadShader("shader/quad.vert", "shader/quad.frag")
+	scene.quadMesh = QuadMesh{}
+	scene.quadMesh.Setup(quadShader)
 }
 
+// update is called every frame
 func (scene *Scene) Update(ctx engine.Context) (unload bool) {
-	scene.selectedMenuItem =
-		updateSelectedMenuItem(scene.selectedMenuItem, len(scene.menuItems)-1)
+	scene.cam.Update()
+	rl.BeginMode3D(scene.cam.R())
+	scene.skybox.Draw(scene.cam.Position)
 
-	rl.ClearBackground(rl.LightGray)
-
-	drawMenuItems(scene.menuItems, scene.menuFontSize, scene.selectedMenuItem)
-	if rl.IsKeyPressed(rl.KeyEnter) {
-		return true // quit scene and call unload
-	}
-	return false
+	rl.DisableBackfaceCulling()
+	scene.quadMesh.Render(gl.TRIANGLES)
+	rl.EnableBackfaceCulling()
+	rl.EndMode3D()
+	DrawCrosshair(30)
+	// Draw Coordinates
+	rl.DrawFPS(10, 5)
+	rl.DrawText(scene.cam.Position.String(), 10, 30, 20, rl.RayWhite)
+	return false // if true is returned, Unload is called
 }
 
-// called when update returns true
+// called after Update returns true
 func (scene *Scene) Unload(ctx engine.Context) (nextSceneID string) {
-	if scene.menuItems[scene.selectedMenuItem] == "Exit" {
-		os.Exit(0)
-	}
-	return "cube"
-}
-
-func drawMenuItems(items []string, fontSize int32, selectedItem int) {
-
-	xPos := int32(rl.GetScreenWidth() / 8) // 1/8th of window width
-	for i, item := range items {
-		var color = rl.DarkGray
-		yPos := int32(i*100) + fontSize*2 // math probably aint mathin
-
-		if i == selectedItem {
-			item = "> " + item
-			color = rl.Red
-		}
-		rl.DrawText(item,
-			xPos, yPos,
-			fontSize,
-			color,
-		)
-	}
-}
-func updateSelectedMenuItem(selectedItem, numItems int) int {
-
-	if rl.IsKeyPressed(rl.KeyUp) {
-		selectedItem--
-	}
-	if rl.IsKeyPressed(rl.KeyDown) {
-		selectedItem++
-	}
-	//clamp
-	if selectedItem > numItems {
-		selectedItem = 0
-	} else if selectedItem < 0 {
-		selectedItem = numItems
-	}
-	return selectedItem
+	scene.skybox.Unload()
+	return "someOtherSceneId" // the engine will switch to the scene that is registered with this id
 }

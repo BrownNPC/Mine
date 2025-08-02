@@ -1,17 +1,21 @@
 package engine
 
 import (
+	c "GameFrameworkTM/components"
 	"errors"
 	"fmt"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
+import "github.com/go-gl/gl/v3.3-core/gl"
 
 // config is passed to the Run function in main.go
 type Config struct {
 	//for implementing letterboxing (black bars) see:https://www.raylib.com/examples/core/loader.html?name=core_window_letterbox
 	// VirtualWidth, VirtualHeight int
-	WindowTitle string
+	WindowTitle   string
+	MinScreenSize c.Vec2
+	ExitKey       int32
 }
 
 // info to pass to scenes
@@ -42,12 +46,15 @@ func Run(scenes Scenes, cfg Config) error {
 	// --------------BEGIN--------------
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(0, 0, cfg.WindowTitle)
+	gl.Init()
 	rl.InitAudioDevice()
+	rl.SetExitKey(cfg.ExitKey)
 	defer rl.CloseWindow() // de-initialization
 	defer rl.CloseAudioDevice()
 	// -----------------------CENTER WINDOW----------------------------
 	WindowWidth, WindowHeight := (rl.GetScreenWidth()*90)/100, (rl.GetScreenHeight()*90)/100
 	rl.SetWindowSize(WindowWidth, WindowHeight) //90% of screen
+	rl.SetWindowMinSize(int(cfg.MinScreenSize.X), int(cfg.MinScreenSize.Y))
 	centerWindow()
 	// ----LOAD START SCENE----
 	ActiveScene.Load(ctx)

@@ -1,10 +1,10 @@
 package main
 
 import (
+	c "GameFrameworkTM/components"
 	"GameFrameworkTM/engine"
 	"GameFrameworkTM/scenes"
 	"fmt"
-
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -12,9 +12,11 @@ import (
 
 // You can edit the window title in this file.
 func main() {
-	rl.SetTraceLogLevel(rl.LogError)
+	rl.SetTraceLogLevel(rl.LogDebug)
 	err := engine.Run(scenes.Registered, engine.Config{
-		WindowTitle: "change this in main.go",
+		WindowTitle:   "Craft",
+		MinScreenSize: c.V2(640, 480),
+		ExitKey:       rl.KeyNumLock,
 	})
 	if err != nil {
 		fmt.Println(err)
