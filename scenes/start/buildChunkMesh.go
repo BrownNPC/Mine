@@ -17,7 +17,7 @@ func NewVertex(x, y, z int, BlockType Blocks.Type, FaceDirection Blocks.Directio
 	}
 }
 
-func buildTriangles(chunk *c.Chunk) []byte {
+func buildVerticies(chunk *c.Chunk) []byte {
 	// Chunk volume * max voxel vertices (18) * vertexSize (5)
 	vertexSize := len(Vertex{})
 	var vertexData = make([]byte, 0, c.CHUNK_VOLUME*18*vertexSize)

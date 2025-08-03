@@ -100,8 +100,8 @@ func (v Vec3) ToInt() (int, int, int) {
 }
 
 func (v Vec3) String() string {
-	return fmt.Sprintf("X:%.2f Y:%.2f Z:%.2f", v.X, v.Y, v.Z)
+	return fmt.Sprintf("XYZ: %.2f %.2f %.2f", v.X, v.Y, v.Z)
 }
 func (v Vec2) String() string {
-	return fmt.Sprintf("X:%.2f Y:%.2f", v.X, v.Y)
+	return fmt.Sprintf("XY :%.2f Y:%.2f", v.X, v.Y)
 }

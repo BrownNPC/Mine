@@ -30,13 +30,6 @@ func SetupMesh(m *BaseMesh, data unsafe.Pointer, totalBytes int, format []Vertex
 	gl.GenBuffers(1, &m.VBO)
 	gl.BindBuffer(gl.ARRAY_BUFFER, m.VBO)
 
-	var boundVAO int32
-	gl.GetIntegerv(gl.VERTEX_ARRAY_BINDING, &boundVAO)
-	fmt.Println("VAO bound:", boundVAO, "expected:", m.VAO)
-
-	var boundVBO int32
-	gl.GetIntegerv(gl.ARRAY_BUFFER_BINDING, &boundVBO)
-	fmt.Println("VBO bound:", boundVBO, "expected:", m.VBO)
 	// bytes per vertex
 	stride := 0
 	for _, attr := range format {
@@ -50,21 +43,52 @@ func SetupMesh(m *BaseMesh, data unsafe.Pointer, totalBytes int, format []Vertex
 	offset := uintptr(0)
 	for _, attr := range format {
 		gl.EnableVertexAttribArray(attr.Location)
-		gl.VertexAttribPointer(attr.Location, int32(attr.Count), attr.Type, attr.Normalize, int32(stride), unsafe.Pointer(offset))
-		offset += uintptr(attr.Count * SizeOfGLType(attr.Type))
+
+		bytesPerAttr := uintptr(attr.Count * SizeOfGLType(attr.Type))
+
+		// If it's an integer type (and you declared uvec*/ivec* in GLSL)
+		if attr.Normalize == false && isIntegerGLType(attr.Type) {
+			gl.VertexAttribIPointer(
+				attr.Location,
+				int32(attr.Count),
+				attr.Type,
+				int32(stride),
+				unsafe.Pointer(offset),
+			)
+		} else {
+			// float attributes or normalized ints
+			gl.VertexAttribPointer(
+				attr.Location,
+				int32(attr.Count),
+				attr.Type,
+				attr.Normalize,
+				int32(stride),
+				unsafe.Pointer(offset),
+			)
+		}
+
+		offset += bytesPerAttr
 	}
+
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 	gl.BindVertexArray(0)
 
 }
 
 // Render the mesh
-func (m *BaseMesh) Render(mode uint32) {
+func (m *BaseMesh) Render(mode uint32, texture *rl.Texture2D) {
 	rl.DrawRenderBatchActive()
 
 	gl.UseProgram(m.Shader.ID)
 	mvp := rl.MatrixMultiply(rl.GetMatrixModelview(), rl.GetMatrixProjection())
 	gl.UniformMatrix4fv(m.Shader.GetLocation(rl.ShaderLocMatrixMvp), 1, false, unsafe.SliceData(rl.MatrixToFloat(mvp)))
+	// rl.SetUniformMatrix(m.Shader.GetLocation(rl.ShaderLocMatrixMvp), mvp)
+
+	if texture != nil {
+		gl.ActiveTexture(gl.TEXTURE0)
+		gl.BindTexture(gl.TEXTURE_2D, texture.ID)
+	}
+
 	gl.BindVertexArray(m.VAO)
 	gl.DrawArrays(mode, 0, m.VertexCount)
 	if err := gl.GetError(); err != gl.NO_ERROR {
@@ -83,6 +107,15 @@ func SizeOfGLType(glType uint32) int {
 	default:
 		panic(fmt.Sprintf("unsupported GL type: 0x%x", glType))
 	}
+}
+func isIntegerGLType(t uint32) bool {
+	switch t {
+	case gl.UNSIGNED_BYTE, gl.INT, gl.UNSIGNED_INT:
+		return true
+	default:
+		return false
+	}
+
 }
 func TotalBytes[T any](slice []T) int {
 	var zero T

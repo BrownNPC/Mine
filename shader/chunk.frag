@@ -1,6 +1,21 @@
 #version 330 core
+
 layout(location = 0) out vec4 fragColor;
 
+const vec3 gamma = vec3(2.2);
+const vec3 inv_gamma = 1 / gamma;
+
+uniform sampler2D texture0;
+
+in vec3 voxel_color;
+in vec2 uv;
+
 void main() {
-    fragColor = vec4(1.0);
+    vec3 tex_col = texture(texture0, uv).rgb;
+    tex_col = pow(tex_col, gamma);
+
+    tex_col.rgb *= voxel_color;
+
+    tex_col = pow(tex_col, inv_gamma);
+    fragColor = vec4(tex_col, 1);
 }

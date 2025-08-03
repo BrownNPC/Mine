@@ -49,12 +49,10 @@ func (c *Camera) Update() {
 	mouse := rl.GetMouseDelta() // Mouse movement since last frame
 
 	// ───── Mouse Look ─────
-	// Adjust yaw (horizontal angle) and pitch (vertical angle) based on mouse movement
-	// Subtracting to make right/left and up/down feel natural
 	c.Yaw -= float64(mouse.X * c.Sensitivity)
 	c.Pitch -= float64(mouse.Y * c.Sensitivity)
 
-	// Clamp the pitch to avoid gimbal lock (can't look straight up/down)
+	// Clamp pitch
 	const pitchLimit = rl.Pi/2 - 0.01
 	if c.Pitch > pitchLimit {
 		c.Pitch = pitchLimit
@@ -63,44 +61,44 @@ func (c *Camera) Update() {
 		c.Pitch = -pitchLimit
 	}
 
-	// ───── Direction Vector ─────
-	// Convert yaw and pitch into a normalized direction vector using spherical coordinates
-	// This is the direction the camera is looking (forward)
+	// ───── Direction & Axes ─────
 	dir := V3(
-		float32(math.Cos(c.Pitch)*math.Sin(c.Yaw)), // X axis
-		float32(math.Sin(c.Pitch)),                 // Y axis (up/down)
-		float32(math.Cos(c.Pitch)*math.Cos(c.Yaw)), // Z axis
+		float32(math.Cos(c.Pitch)*math.Sin(c.Yaw)),
+		float32(math.Sin(c.Pitch)),
+		float32(math.Cos(c.Pitch)*math.Cos(c.Yaw)),
 	)
-
-	// ───── Local Axes ─────
-	// Calculate the right vector (camera's X axis) using cross product: right = forward × world up
 	right := dir.Cross(V3(0, 1, 0)).Norm()
-
-	// Calculate the up vector (camera's Y axis) using cross product: up = right × forward
 	up := right.Cross(dir).Norm()
 
 	// ───── Movement Input ─────
-	// Move the camera along its local axes depending on which keys are pressed
-	// All movement is scaled by dt
+	// 1) accumulate
+	move := V3(0, 0, 0)
 	if rl.IsKeyDown(rl.KeyW) {
-		c.Position = c.Position.Add(dir.Scale(c.MoveSpeed * dt)) // Forward
+		move = move.Add(dir)
 	}
 	if rl.IsKeyDown(rl.KeyS) {
-		c.Position = c.Position.Sub(dir.Scale(c.MoveSpeed * dt)) // Backward
+		move = move.Sub(dir)
 	}
 	if rl.IsKeyDown(rl.KeyA) {
-		c.Position = c.Position.Sub(right.Scale(c.MoveSpeed * dt)) // Left (strafe)
+		move = move.Sub(right)
 	}
 	if rl.IsKeyDown(rl.KeyD) {
-		c.Position = c.Position.Add(right.Scale(c.MoveSpeed * dt)) // Right (strafe)
+		move = move.Add(right)
 	}
+	// vertical fly/jump
 	if rl.IsKeyDown(rl.KeySpace) {
-		c.Position = c.Position.Add(up.Scale(c.MoveSpeed * dt)) // Up (fly/jump)
+		move = move.Add(up)
 	}
 	if rl.IsKeyDown(rl.KeyLeftShift) {
-		c.Position = c.Position.Sub(up.Scale(c.MoveSpeed * dt)) // Down (descend)
+		move = move.Sub(up)
 	}
 
-	// where it looks. the direction vector + position
+	// 2) normalize & scale
+	if length := move.Len(); length > 0 {
+		move = move.Scale(c.MoveSpeed * dt / length)
+		c.Position = c.Position.Add(move)
+	}
+
+	// ───── Final Target ─────
 	c.Target = c.Position.Add(dir)
 }

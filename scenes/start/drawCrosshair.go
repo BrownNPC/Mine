@@ -7,11 +7,11 @@ import (
 )
 
 func DrawCrosshair(size int32) {
-	cx := int32(rl.GetScreenWidth() / 2)  // center x
-	cy := int32(rl.GetScreenHeight() / 2) // center y
+	cx := int32(rl.GetRenderWidth() / 2)  // center x
+	cy := int32(rl.GetRenderHeight() / 2) // center y
 	// Get a scale factor based on the screen size
 	// Choose smallest dimension to keep consistent scaling
-	minDim := min(rl.GetScreenWidth(), rl.GetScreenHeight())
+	minDim := min(rl.GetRenderWidth(), rl.GetRenderHeight())
 
 	// Scale factor: 1080p window = 1.0
 	scale := float32(minDim) / 1080.0

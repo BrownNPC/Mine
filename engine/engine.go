@@ -21,7 +21,11 @@ type Config struct {
 // info to pass to scenes
 // eg. a camera, game map, or save file
 type Context struct {
-	SomeData any
+	DebugMenuEnabled bool
+	// where memory usage will be drawn
+	// when f3 is enabled
+	MemoryStatsCords *c.Vec2
+	DebugFontSize    int32
 }
 
 // a scene must implement these methods
@@ -37,7 +41,11 @@ type Scenes map[string]scene
 func Run(scenes Scenes, cfg Config) error {
 	ActiveSceneId := "start" // look for a scene named start as entry-point
 	ActiveScene, ok := scenes[ActiveSceneId]
-	ctx := Context{} // info to pass to scenes.
+	ctx := Context{
+		DebugMenuEnabled: false,
+		MemoryStatsCords: &c.Vec2{},
+		DebugFontSize:    20,
+	} // info to pass to scenes.
 	if !ok {
 		return errors.New(`Cannot start. There must be a scene with id "start" that is the entry-point`)
 	} else if ActiveScene == nil {
@@ -46,6 +54,7 @@ func Run(scenes Scenes, cfg Config) error {
 	// --------------BEGIN--------------
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(0, 0, cfg.WindowTitle)
+	go MemoryStatsCollector()
 	gl.Init()
 	rl.InitAudioDevice()
 	rl.SetExitKey(cfg.ExitKey)
@@ -64,10 +73,19 @@ func Run(scenes Scenes, cfg Config) error {
 		if rl.IsKeyPressed(rl.KeyF11) {
 			rl.ToggleBorderlessWindowed()
 		}
+		// f3 is for debug menu
+		if rl.IsKeyPressed(rl.KeyF3) {
+			ctx.DebugMenuEnabled = !ctx.DebugMenuEnabled
+		}
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.Black)
 		// -------UPDATE SCENE---------
+		ctx.MemoryStatsCords = &c.V2Z
 		var unloadActiveScene bool = ActiveScene.Update(ctx)
+		// ----- DRAW DEBUG MENU ------
+		if ctx.DebugMenuEnabled {
+			DrawMemoryStats(int32(ctx.MemoryStatsCords.X), int32(ctx.MemoryStatsCords.Y), ctx.DebugFontSize)
+		}
 		rl.EndDrawing()
 		if unloadActiveScene {
 			// -------UNLOAD SCENE-------
