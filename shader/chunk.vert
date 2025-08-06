@@ -4,10 +4,20 @@ layout(location = 0) in ivec3 InPosition;
 layout(location = 1) in int BlockId;
 layout(location = 2) in int faceDirection;
 
-uniform mat4 mvp;
+uniform mat4 matModel;
+uniform mat4 matView;
+uniform mat4 matProjection;
 
 out vec3 voxel_color;
 out vec2 uv;
+out float shading;
+
+const float face_shading[6] = float[6](
+        1.0, 0.5, // top bottom
+        0.5, 0.8, // right left
+        0.5, 0.8 // front back
+    );
+
 const vec2 uv_coords[4] = vec2[4](
         vec2(0, 0), vec2(0, 1),
         vec2(1, 0), vec2(1, 1)
@@ -28,5 +38,8 @@ void main() {
     int uv_index = gl_VertexID % 6 + (faceDirection & 1) * 6;
     uv = uv_coords[uv_indices[uv_index]];
     voxel_color = hash31(BlockId);
+
+    shading = face_shading[faceDirection];
+    mat4 mvp = matProjection * matView * matModel;
     gl_Position = mvp * vec4(InPosition, 1.0);
 }

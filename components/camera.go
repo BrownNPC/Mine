@@ -68,7 +68,7 @@ func (c *Camera) Update() {
 		float32(math.Cos(c.Pitch)*math.Cos(c.Yaw)),
 	)
 	right := dir.Cross(V3(0, 1, 0)).Norm()
-	up := right.Cross(dir).Norm()
+	up := V3(0, 1, 0)
 
 	// ───── Movement Input ─────
 	// 1) accumulate

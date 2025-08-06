@@ -4,10 +4,11 @@ import (
 	c "GameFrameworkTM/components"
 	"errors"
 	"fmt"
+	"runtime"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/go-gl/gl/v3.3-core/gl"
 )
-import "github.com/go-gl/gl/v3.3-core/gl"
 
 // config is passed to the Run function in main.go
 type Config struct {
@@ -76,6 +77,10 @@ func Run(scenes Scenes, cfg Config) error {
 		// f3 is for debug menu
 		if rl.IsKeyPressed(rl.KeyF3) {
 			ctx.DebugMenuEnabled = !ctx.DebugMenuEnabled
+		}
+		// force garbage collection
+		if rl.IsKeyPressed(rl.KeyF6) {
+			runtime.GC()
 		}
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.Black)

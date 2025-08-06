@@ -17,7 +17,8 @@ func NewVertex(x, y, z int, BlockType Blocks.Type, FaceDirection Blocks.Directio
 	}
 }
 
-func buildVerticies(chunk *c.Chunk) []byte {
+func (cm *ChunkMesh) BuildVerticies(Neighbours [6]*c.Chunk) []byte {
+	chunk := &cm.Chunk
 	// Chunk volume * max voxel vertices (18) * vertexSize (5)
 	vertexSize := len(Vertex{})
 	var vertexData = make([]byte, 0, c.CHUNK_VOLUME*18*vertexSize)
@@ -29,7 +30,7 @@ func buildVerticies(chunk *c.Chunk) []byte {
 					continue
 				}
 				// top face
-				if chunk.IsAir(x, y+1, z) {
+				if chunk.IsAirNeighbours(x, y+1, z, Neighbours) {
 					v0 := NewVertex(x, y+1, z, blockType, Blocks.Top)
 					v1 := NewVertex(x+1, y+1, z, blockType, Blocks.Top)
 					v2 := NewVertex(x+1, y+1, z+1, blockType, Blocks.Top)
@@ -37,7 +38,7 @@ func buildVerticies(chunk *c.Chunk) []byte {
 					vertexData = addVerticies(vertexData, v0, v3, v2, v0, v2, v1)
 				}
 				// bottom face
-				if chunk.IsAir(x, y-1, z) {
+				if chunk.IsAirNeighbours(x, y-1, z, Neighbours) {
 					v0 := NewVertex(x, y, z, blockType, Blocks.Bottom)
 					v1 := NewVertex(x+1, y, z, blockType, Blocks.Bottom)
 					v2 := NewVertex(x+1, y, z+1, blockType, Blocks.Bottom)
@@ -45,7 +46,7 @@ func buildVerticies(chunk *c.Chunk) []byte {
 					vertexData = addVerticies(vertexData, v0, v2, v3, v0, v1, v2)
 				}
 				// right face
-				if chunk.IsAir(x+1, y, z) {
+				if chunk.IsAirNeighbours(x+1, y, z, Neighbours) {
 					v0 := NewVertex(x+1, y, z, blockType, Blocks.Right)
 					v1 := NewVertex(x+1, y+1, z, blockType, Blocks.Right)
 					v2 := NewVertex(x+1, y+1, z+1, blockType, Blocks.Right)
@@ -53,7 +54,7 @@ func buildVerticies(chunk *c.Chunk) []byte {
 					vertexData = addVerticies(vertexData, v0, v1, v2, v0, v2, v3)
 				}
 				// left face
-				if chunk.IsAir(x-1, y, z) {
+				if chunk.IsAirNeighbours(x-1, y, z, Neighbours) {
 					v0 := NewVertex(x, y, z, blockType, Blocks.Left)
 					v1 := NewVertex(x, y+1, z, blockType, Blocks.Left)
 					v2 := NewVertex(x, y+1, z+1, blockType, Blocks.Left)
@@ -61,7 +62,7 @@ func buildVerticies(chunk *c.Chunk) []byte {
 					vertexData = addVerticies(vertexData, v0, v2, v1, v0, v3, v2)
 				}
 				// back face
-				if chunk.IsAir(x, y, z-1) {
+				if chunk.IsAirNeighbours(x, y, z-1, Neighbours) {
 					v0 := NewVertex(x, y, z, blockType, Blocks.Back)
 					v1 := NewVertex(x, y+1, z, blockType, Blocks.Back)
 					v2 := NewVertex(x+1, y+1, z, blockType, Blocks.Back)
@@ -69,12 +70,12 @@ func buildVerticies(chunk *c.Chunk) []byte {
 					vertexData = addVerticies(vertexData, v0, v1, v2, v0, v2, v3)
 				}
 				// front face
-				if chunk.IsAir(x, y, z+1) {
+				if chunk.IsAirNeighbours(x, y, z+1, Neighbours) {
 					v0 := NewVertex(x, y, z+1, blockType, Blocks.Front)
 					v1 := NewVertex(x, y+1, z+1, blockType, Blocks.Front)
 					v2 := NewVertex(x+1, y+1, z+1, blockType, Blocks.Front)
 					v3 := NewVertex(x+1, y, z+1, blockType, Blocks.Front)
-					vertexData = addVerticies(vertexData, v0, v1, v2, v0, v3, v2)
+					vertexData = addVerticies(vertexData, v0, v2, v1, v0, v3, v2)
 				}
 			}
 		}

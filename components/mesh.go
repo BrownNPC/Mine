@@ -9,7 +9,6 @@ import (
 )
 
 type BaseMesh struct {
-	Shader      rl.Shader
 	VAO         uint32
 	VBO         uint32
 	VertexCount int32
@@ -23,7 +22,7 @@ type VertexAttrib struct {
 
 // Setup initializes the VBO, VAO, and binds attributes
 
-func SetupMesh(m *BaseMesh, data unsafe.Pointer, totalBytes int, format []VertexAttrib) {
+func SetupMesh(m *BaseMesh, vertexData unsafe.Pointer, totalBytes int, format []VertexAttrib) {
 	gl.GenVertexArrays(1, &m.VAO)
 	gl.BindVertexArray(m.VAO)
 
@@ -37,7 +36,7 @@ func SetupMesh(m *BaseMesh, data unsafe.Pointer, totalBytes int, format []Vertex
 	}
 	// total vertices = totalBytes / bytesPerVertex
 	m.VertexCount = int32(totalBytes / stride)
-	gl.BufferData(gl.ARRAY_BUFFER, totalBytes, data, gl.STATIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, totalBytes, vertexData, gl.STATIC_DRAW)
 
 	// Setup attributes
 	offset := uintptr(0)
@@ -69,28 +68,34 @@ func SetupMesh(m *BaseMesh, data unsafe.Pointer, totalBytes int, format []Vertex
 
 		offset += bytesPerAttr
 	}
-
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 	gl.BindVertexArray(0)
 
 }
 
 // Render the mesh
-func (m *BaseMesh) Render(mode uint32, texture *rl.Texture2D) {
+// texture is needed for texture id
+func (m *BaseMesh) Render(cam Camera, shader rl.Shader, texture rl.Texture2D, model rl.Matrix) {
 	rl.DrawRenderBatchActive()
 
-	gl.UseProgram(m.Shader.ID)
-	mvp := rl.MatrixMultiply(rl.GetMatrixModelview(), rl.GetMatrixProjection())
-	gl.UniformMatrix4fv(m.Shader.GetLocation(rl.ShaderLocMatrixMvp), 1, false, unsafe.SliceData(rl.MatrixToFloat(mvp)))
-	// rl.SetUniformMatrix(m.Shader.GetLocation(rl.ShaderLocMatrixMvp), mvp)
+	gl.UseProgram(shader.ID)
 
-	if texture != nil {
-		gl.ActiveTexture(gl.TEXTURE0)
-		gl.BindTexture(gl.TEXTURE_2D, texture.ID)
-	}
+	locModel := shader.GetLocation(rl.ShaderLocMatrixModel)
+	locView := shader.GetLocation(rl.ShaderLocMatrixView)
+	locProjection := shader.GetLocation(rl.ShaderLocMatrixProjection)
+
+	view := rl.GetCameraMatrix(cam.R())
+	projection := rl.GetMatrixProjection()
+
+	rl.SetShaderValueMatrix(shader, locModel, model)
+	rl.SetShaderValueMatrix(shader, locView, view)
+	rl.SetShaderValueMatrix(shader, locProjection, projection)
+
+	gl.ActiveTexture(gl.TEXTURE0)
+	gl.BindTexture(gl.TEXTURE_2D, texture.ID)
 
 	gl.BindVertexArray(m.VAO)
-	gl.DrawArrays(mode, 0, m.VertexCount)
+	gl.DrawArrays(gl.TRIANGLES, 0, m.VertexCount)
 	if err := gl.GetError(); err != gl.NO_ERROR {
 		fmt.Printf("GL error after DrawArrays: 0x%X\n", err)
 	}

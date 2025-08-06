@@ -7,6 +7,7 @@ toolchain go1.24.1
 require (
 	github.com/gen2brain/raylib-go/raylib v0.55.1
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
+	github.com/ojrac/opensimplex-go v1.0.2
 )
 
 require (

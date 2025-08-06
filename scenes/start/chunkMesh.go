@@ -7,15 +7,24 @@ import (
 	"github.com/go-gl/gl/v3.3-core/gl"
 )
 
+// a ChunkMesh wraps a chunk and a mesh
 type ChunkMesh struct {
 	c.BaseMesh
-	chunk *c.Chunk
+	Chunk c.Chunk
 }
 
-func (m *ChunkMesh) Setup(shader rl.Shader, chunk *c.Chunk) {
-	m.chunk = chunk
-	m.Shader = shader
-	verticies := buildVerticies(chunk)
+func NewChunkMesh(x, y, z int) ChunkMesh {
+	return ChunkMesh{
+		Chunk: c.NewChunk(x, y, z),
+	}
+}
+
+// upload vertices to the gpu
+func (m *ChunkMesh) Setup(vertices []byte) {
+	if m.Chunk.Empty {
+		return
+	}
+
 	attrib := []c.VertexAttrib{
 		// 3 bytes for coordinates for each block within the chunk
 		{Location: 0, Count: 3, Type: gl.UNSIGNED_BYTE, Normalize: false},
@@ -23,5 +32,12 @@ func (m *ChunkMesh) Setup(shader rl.Shader, chunk *c.Chunk) {
 		{Location: 1, Count: 1, Type: gl.UNSIGNED_BYTE, Normalize: false},
 		{Location: 2, Count: 1, Type: gl.UNSIGNED_BYTE, Normalize: false},
 	}
-	c.SetupMesh(&m.BaseMesh, gl.Ptr(verticies), c.TotalBytes(verticies), attrib)
+	c.SetupMesh(&m.BaseMesh, gl.Ptr(vertices), c.TotalBytes(vertices), attrib)
+}
+func (m *ChunkMesh) Render(cam c.Camera, shader rl.Shader, texture rl.Texture2D) {
+	if m.Chunk.Empty {
+		return
+	}
+	model := m.Chunk.GetModelMatrix()
+	m.BaseMesh.Render(cam, shader, texture, model)
 }

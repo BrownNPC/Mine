@@ -59,6 +59,9 @@ func (v Vec2) Norm() Vec2 {
 func (v Vec2) Dist(o Vec2) float32 {
 	return v.Sub(o).Len()
 }
+func (v Vec2) XY() (float32, float32) {
+	return v.X, v.Y
+}
 
 //
 // === Vec3 Math ===
@@ -98,9 +101,12 @@ func (v Vec3) Round() Vec3 {
 func (v Vec3) ToInt() (int, int, int) {
 	return int(v.X), int(v.Y), int(v.Z)
 }
+func (v Vec3) XYZ() (float32, float32, float32) {
+	return v.X, v.Y, v.Z
+}
 
 func (v Vec3) String() string {
-	return fmt.Sprintf("XYZ: %.2f %.2f %.2f", v.X, v.Y, v.Z)
+	return fmt.Sprintf("XYZ: %.0f %.0f %.0f", v.X, v.Y, v.Z)
 }
 func (v Vec2) String() string {
 	return fmt.Sprintf("XY :%.2f Y:%.2f", v.X, v.Y)
