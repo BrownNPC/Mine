@@ -28,4 +28,5 @@ func DrawMemoryStats(x, y, fontSize int32) {
 	memory := mem.(runtime.MemStats)
 	heapUsage := fmt.Sprintf("Heap Usage: %.2f MB", float64(memory.Alloc)/1024/1024)
 	rl.DrawText(heapUsage, int32(x), int32(y), fontSize, rl.RayWhite)
+	rl.DrawText("F6 to force garbage collection", int32(x), int32(y+20), 20, rl.Red)
 }

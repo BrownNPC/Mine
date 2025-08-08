@@ -2,7 +2,6 @@ package c
 
 import (
 	"fmt"
-	"log"
 )
 
 // ThreeDimensionalArray is a generic 3D array type backed by a flat slice.
@@ -27,45 +26,45 @@ func New3dArray[T any](x, y, z int) ThreeDimensionalArray[T] {
 	}
 }
 
-// idx computes the flat index for coordinates (x, y, z) or returns an error.
-func (a ThreeDimensionalArray[T]) idx(x, y, z int) (int, error) {
+// idx computes the flat index for coordinates (x, y, z) returns -1 if out of bounds
+func (a ThreeDimensionalArray[T]) idx(x, y, z int) int {
 	if x < 0 || x >= a.X {
-		return 0, fmt.Errorf("x index out of bounds: %d", x)
+		return -1
 	}
 	if y < 0 || y >= a.Y {
-		return 0, fmt.Errorf("y index out of bounds: %d", y)
+		return -1
 	}
 	if z < 0 || z >= a.Z {
-		return 0, fmt.Errorf("z index out of bounds: %d", z)
+		return -1
 	}
-	return x*(a.Y*a.Z) + y*a.Z + z, nil
+	return x*(a.Y*a.Z) + y*a.Z + z
 }
 
 // Get returns the element at (x, y, z) or panics if out of bounds.
 func (a ThreeDimensionalArray[T]) Get(x, y, z int) T {
-	i, err := a.idx(x, y, z)
-	if err != nil {
-		log.Panic(err)
+	i := a.idx(x, y, z)
+	if i == -1 {
+		var zero T
+		return zero
 	}
 	return a.data[i]
 }
 
 // GetRef returns a pointer to the element at (x, y, z) or panics if out of bounds.
 func (a ThreeDimensionalArray[T]) GetRef(x, y, z int) *T {
-	i, err := a.idx(x, y, z)
-	if err != nil {
-		log.Panic(err)
+	i := a.idx(x, y, z)
+	if i == -1 {
+		return nil
 	}
 	return &a.data[i]
 }
 
-// Set assigns value at (x, y, z) or panics if out of bounds.
+// Set assigns value at (x, y, z) or no-op if out of bounds.
 func (a *ThreeDimensionalArray[T]) Set(x, y, z int, value T) {
-	i, err := a.idx(x, y, z)
-	if err != nil {
-		log.Panic(err)
+	i := a.idx(x, y, z)
+	if i > -1 {
+		a.data[i] = value
 	}
-	a.data[i] = value
 }
 
 // Dimensions returns the size of each axis: X, Y, Z.

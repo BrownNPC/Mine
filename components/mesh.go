@@ -126,3 +126,16 @@ func TotalBytes[T any](slice []T) int {
 	var zero T
 	return len(slice) * int(unsafe.Sizeof(zero))
 }
+
+// Unload deletes the VAO and VBO from GPU memory.
+func (m *BaseMesh) Unload() {
+	if m.VAO != 0 {
+		gl.DeleteVertexArrays(1, &m.VAO)
+		m.VAO = 0
+	}
+	if m.VBO != 0 {
+		gl.DeleteBuffers(1, &m.VBO)
+		m.VBO = 0
+	}
+	m.VertexCount = 0
+}

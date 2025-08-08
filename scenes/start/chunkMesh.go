@@ -21,16 +21,18 @@ func NewChunkMesh(x, y, z int) ChunkMesh {
 
 // upload vertices to the gpu
 func (m *ChunkMesh) Setup(vertices []byte) {
-	if m.Chunk.Empty {
+	if m.Chunk.Empty || len(vertices) == 0 {
+		m.Chunk.Empty = true
 		return
 	}
 
 	attrib := []c.VertexAttrib{
 		// 3 bytes for coordinates for each block within the chunk
 		{Location: 0, Count: 3, Type: gl.UNSIGNED_BYTE, Normalize: false},
-		// 2 byes for blockType and blockFaceDirection
+		// blocktype, face direction, ambient occlusion
 		{Location: 1, Count: 1, Type: gl.UNSIGNED_BYTE, Normalize: false},
 		{Location: 2, Count: 1, Type: gl.UNSIGNED_BYTE, Normalize: false},
+		{Location: 3, Count: 1, Type: gl.UNSIGNED_BYTE, Normalize: false},
 	}
 	c.SetupMesh(&m.BaseMesh, gl.Ptr(vertices), c.TotalBytes(vertices), attrib)
 }

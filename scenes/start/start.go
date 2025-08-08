@@ -2,6 +2,7 @@ package start
 
 import (
 	c "GameFrameworkTM/components"
+	"GameFrameworkTM/components/Blocks"
 	"GameFrameworkTM/engine"
 	"fmt"
 	"time"
@@ -23,7 +24,7 @@ type Scene struct {
 // Load is called once the scene is switched to
 func (scene *Scene) Load(ctx engine.Context) {
 
-	scene.world = NewWorld(25, 2, time.Now().UnixMilli())
+	scene.world = NewWorld(8, 2, 0)
 
 	scene.cam = c.NewCamera(scene.world.Center(), 90, 10, 0.0036)
 	scene.skybox = LoadSkybox("assets/skybox.png")
@@ -31,7 +32,7 @@ func (scene *Scene) Load(ctx engine.Context) {
 
 	start := time.Now()
 	scene.world.BuildChunkMeshes()
-	fmt.Println("Meshed in",time.Since(start))
+	fmt.Println("Meshed in", time.Since(start))
 
 	scene.atlas = rl.LoadTexture("assets/blocks/textures/Dirt.png")
 
@@ -65,10 +66,26 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 	if ctx.DebugMenuEnabled {
 		rl.DrawFPS(10, 10)
 		// Draw Coordinates
-		rl.DrawText(scene.cam.Position.String(), 10, 30, ctx.DebugFontSize, rl.RayWhite)
-		ctx.MemoryStatsCords.X = 10
-		ctx.MemoryStatsCords.Y = 50
-		rl.DrawText(fmt.Sprintf("World Size: %dx%dx%d (%d chunks)", scene.world.Width, scene.world.Height, scene.world.Depth, scene.world.Volume), 10, 70, 20, rl.RayWhite)
+		rl.DrawText(scene.cam.Position.String(), 5, 30, ctx.DebugFontSize, rl.RayWhite)
+		rl.DrawText(fmt.Sprintf("World Size: %dx%dx%d (%d chunks)", scene.world.Width, scene.world.Height, scene.world.Depth, scene.world.Volume), 5, 70, 20, rl.RayWhite)
+		ctx.MemoryStatsCords.X = 5
+		ctx.MemoryStatsCords.Y = 100 + 60
+	}
+	if rl.IsMouseButtonDown(rl.MouseButtonLeft) {
+		rl.DrawText(fmt.Sprint(scene.cam.LookVector()), 500, 0, 20, rl.Red)
+		hit, pos := scene.world.RaycastVoxel(scene.cam.Position, scene.cam.LookVector(), 6)
+		if hit {
+			rl.DrawRectangle(0, 0, 20, 20, rl.Lime)
+			rl.DrawText(fmt.Sprint(pos), 0, 400, 20, rl.Blue)
+			x, y, z := pos.ToInt()
+			scene.world.SetBlockID(x, y, z, Blocks.Dirt)
+			chunk, _, _, _, ok := scene.world.ChunkAtWorld(x, y, z)
+			if ok {
+				chunk.Unload()
+				vertices := chunk.BuildVerticies(&scene.world)
+				chunk.Setup(vertices)
+			}
+		}
 	}
 	return false // if true is returned, Unload is called
 }

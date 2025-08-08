@@ -102,3 +102,10 @@ func (c *Camera) Update() {
 	// ───── Final Target ─────
 	c.Target = c.Position.Add(dir)
 }
+func (c *Camera) LookVector() Vec3 {
+	return V3(
+		float32(math.Cos(c.Pitch)*math.Sin(c.Yaw)),
+		float32(math.Sin(c.Pitch)),
+		float32(math.Cos(c.Pitch)*math.Cos(c.Yaw)),
+	)
+}
