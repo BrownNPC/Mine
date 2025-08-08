@@ -13,15 +13,15 @@ type ChunkMesh struct {
 	Chunk c.Chunk
 }
 
-func NewChunkMesh(x, y, z int) ChunkMesh {
-	return ChunkMesh{
+func NewChunkMesh(x, y, z int) *ChunkMesh {
+	return &ChunkMesh{
 		Chunk: c.NewChunk(x, y, z),
 	}
 }
 
 // upload vertices to the gpu
 func (m *ChunkMesh) Setup(vertices []byte) {
-	if m.Chunk.Empty || len(vertices) == 0 {
+	if len(vertices) == 0 {
 		m.Chunk.Empty = true
 		return
 	}
@@ -37,7 +37,7 @@ func (m *ChunkMesh) Setup(vertices []byte) {
 	c.SetupMesh(&m.BaseMesh, gl.Ptr(vertices), c.TotalBytes(vertices), attrib)
 }
 func (m *ChunkMesh) Render(cam c.Camera, shader rl.Shader, texture rl.Texture2D) {
-	if m.Chunk.Empty {
+	if m.Chunk.Empty ||!cam.IsInView(&m.Chunk) {
 		return
 	}
 	model := m.Chunk.GetModelMatrix()

@@ -17,13 +17,16 @@ type Camera struct {
 	FOV    float32
 
 	Pitch, Yaw float64
+	Aspect     float32
+
+	FovyRad, FovxRad float32
 }
 
 // forwards is -Z (north)
 var Forwards = V3(0, 0, -1)
 
 func NewCamera(pos Vec3, fov, moveSpeed float32, sensitivity float32) Camera {
-	return Camera{
+	cam := Camera{
 		MoveSpeed:   moveSpeed,
 		Sensitivity: sensitivity,
 		Position:    pos,
@@ -32,6 +35,8 @@ func NewCamera(pos Vec3, fov, moveSpeed float32, sensitivity float32) Camera {
 		Pitch:       0,
 		Yaw:         0,
 	}
+	cam.CaclulateFOV(fov)
+	return cam
 }
 
 // convert to raylib camera
@@ -45,6 +50,8 @@ func (c Camera) R() rl.Camera {
 	}
 }
 func (c *Camera) Update() {
+	c.Aspect = float32(rl.GetRenderWidth()) / float32(rl.GetRenderHeight())
+	c.CaclulateFOV(c.FOV)
 	dt := rl.GetFrameTime()     // Time since last frame (in seconds)
 	mouse := rl.GetMouseDelta() // Mouse movement since last frame
 
@@ -73,11 +80,12 @@ func (c *Camera) Update() {
 	// ───── Movement Input ─────
 	// 1) accumulate
 	move := V3(0, 0, 0)
+	forwards := dir.Sub(V3(0, dir.Y, 0))
 	if rl.IsKeyDown(rl.KeyW) {
-		move = move.Add(dir)
+		move = move.Add(forwards)
 	}
 	if rl.IsKeyDown(rl.KeyS) {
-		move = move.Sub(dir)
+		move = move.Sub(forwards)
 	}
 	if rl.IsKeyDown(rl.KeyA) {
 		move = move.Sub(right)
@@ -108,4 +116,58 @@ func (c *Camera) LookVector() Vec3 {
 		float32(math.Sin(c.Pitch)),
 		float32(math.Cos(c.Pitch)*math.Cos(c.Yaw)),
 	)
+}
+
+// convert fov in degrees to radians and get vertical and horizontal fov
+func (c *Camera) CaclulateFOV(degFOV float32) {
+	aspect := float32(rl.GetRenderWidth()) / float32(rl.GetRenderHeight())
+	fovyRad := degFOV * rl.Deg2rad
+	fovxRad := 2 * math.Atan(math.Tan(float64(fovyRad/2))*float64(aspect))
+	c.FovyRad = fovyRad
+	c.FovxRad = float32(fovxRad)
+}
+
+// perform frustum culling math
+func (c *Camera) IsInView(chunk *Chunk) bool {
+	const NEAR = 0.1
+	const FAR = 10000
+	r := CHUNK_SPHERE_RADIUS
+	halfX := float64(c.FovxRad * 0.5)
+	halfY := float64(c.FovyRad * 0.5)
+
+	factorY := 1.0 / math.Cos(halfY)
+	tanY := math.Tan(halfY)
+
+	factorX := 1.0 / math.Cos(halfX)
+	tanX := math.Tan(halfX)
+
+	// camera axes
+	forward := c.LookVector().Norm()
+	right := forward.Cross(V3(0, 1, 0)).Norm()
+	up := right.Cross(forward).Norm()
+
+	center := chunk.Center().Sub(c.Position)
+
+	// outside NEAR and FAR planes?
+	sz := float64(center.Dot(forward))
+	if sz < NEAR-r || sz > FAR+r {
+		return false
+	}
+
+	// outside TOP and BOTTOM planes?
+	sy := float64(center.Dot(up))
+	dist := factorY*r + sz*tanY
+
+	if sy < -dist || sy > dist {
+		return false
+	}
+
+	sx := float64(center.Dot(right))
+	// outside the LEFT and RIGHT plane
+	dist = factorX*r + sz*tanX
+	if sx < -dist || sx > dist {
+		return false
+	}
+
+	return true
 }

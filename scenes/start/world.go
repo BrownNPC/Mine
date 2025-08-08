@@ -15,7 +15,7 @@ type World struct {
 	Width, Height       int
 	Depth, Volume, Area int
 	CenterXZ, CenterY   int
-	Chunks              c.ThreeDimensionalArray[ChunkMesh]
+	Chunks              c.ThreeDimensionalArray[*ChunkMesh]
 	NoiseGenerator      opensimplex.Noise32
 }
 
@@ -30,7 +30,7 @@ func NewWorld(width, height int, seed int64) World {
 	world.CenterXZ = world.Width * c.CHUNK_SIZE_HALF
 	world.CenterY = world.Height * c.CHUNK_SIZE_HALF
 	// volume
-	world.Chunks = c.New3dArray[ChunkMesh](world.Width, world.Height, world.Depth)
+	world.Chunks = c.New3dArray[*ChunkMesh](world.Width, world.Height, world.Depth)
 
 	world.NoiseGenerator = opensimplex.New32(seed)
 
@@ -60,7 +60,7 @@ func (world *World) BuildChunkMeshes() {
 		for y := range world.Height {
 			for z := range world.Depth {
 
-				chunk := world.Chunks.GetRef(x, y, z)
+				chunk := world.Chunks.Get(x, y, z)
 				// Gather pointers to neighboring chunks
 
 				// Setup this chunk with its neighbors
@@ -74,13 +74,17 @@ func (world *World) BuildChunkMeshes() {
 
 func (world *World) Render(cam c.Camera, shader rl.Shader, textures rl.Texture2D) {
 	chunks := world.Chunks.BackingArray()
-	for i := range chunks {
-		chunks[i].Render(cam, shader, textures)
+	for _, chunk := range chunks {
+		chunk.Render(cam, shader, textures)
 	}
 }
 
 // you may need to adapt c.Vec3 and Blocks.Air names to your codebase
-func (world *World) RaycastVoxel(origin, dir c.Vec3, maxDist float32) (hit bool, pos c.Vec3) {
+// RaycastVoxelNormal returns (hit, voxelPos, faceNormal).
+// voxelPos is the integer voxel coordinates of the solid block hit.
+// faceNormal is a vector with one of: (-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1).
+// If the ray starts inside a solid voxel, we return that voxel and faceNormal = c.V3Z.
+func (world *World) RaycastVoxel(origin, dir c.Vec3, maxDist float32) (bool, c.Vec3, c.Vec3) {
 	// helper: check solid block
 	isSolid := func(ix, iy, iz int) bool {
 		return world.GetBlockID(ix, iy, iz) != Blocks.Air
@@ -97,7 +101,7 @@ func (world *World) RaycastVoxel(origin, dir c.Vec3, maxDist float32) (hit bool,
 	// normalize direction so t is in world units (distance)
 	dirLen := math.Sqrt(dx*dx + dy*dy + dz*dz)
 	if dirLen == 0 {
-		return false, c.V3Z
+		return false, c.V3Z, c.V3Z
 	}
 	dx /= dirLen
 	dy /= dirLen
@@ -133,10 +137,8 @@ func (world *World) RaycastVoxel(origin, dir c.Vec3, maxDist float32) (hit bool,
 	if dx == 0 {
 		tMaxX = math.Inf(1)
 	} else if stepX > 0 {
-		// next boundary is at floor(ox)+1
 		tMaxX = (1.0 - fracX) / dx
 	} else {
-		// moving negative, next boundary is at floor(ox) (which equals ix)
 		tMaxX = fracX / -dx
 	}
 
@@ -174,24 +176,34 @@ func (world *World) RaycastVoxel(origin, dir c.Vec3, maxDist float32) (hit bool,
 		tDeltaZ = math.Abs(1.0 / dz)
 	}
 
-	// If starting inside a solid voxel, return it immediately
+	// If starting inside a solid voxel, return it immediately (no reliable normal).
 	if isSolid(ix, iy, iz) {
-		return true, c.V3(float32(ix), float32(iy), float32(iz))
+		return true, c.V3(float32(ix), float32(iy), float32(iz)), c.V3Z
 	}
+
+	// Track which axis & sign we last stepped on so we can produce a normal.
+	lastAxis := -1 // 0=x, 1=y, 2=z
+	lastStep := 0  // ±1
 
 	t := 0.0
 	for t <= maxT {
-		// choose smallest tMax to step
+		// choose smallest tMax to step (tie-breaking: X, then Y, then Z — same as your original)
 		if tMaxX <= tMaxY && tMaxX <= tMaxZ {
 			ix += stepX
+			lastAxis = 0
+			lastStep = stepX
 			t = tMaxX
 			tMaxX += tDeltaX
 		} else if tMaxY <= tMaxZ {
 			iy += stepY
+			lastAxis = 1
+			lastStep = stepY
 			t = tMaxY
 			tMaxY += tDeltaY
 		} else {
 			iz += stepZ
+			lastAxis = 2
+			lastStep = stepZ
 			t = tMaxZ
 			tMaxZ += tDeltaZ
 		}
@@ -200,11 +212,23 @@ func (world *World) RaycastVoxel(origin, dir c.Vec3, maxDist float32) (hit bool,
 			break
 		}
 		if isSolid(ix, iy, iz) {
-			return true, c.V3(float32(ix), float32(iy), float32(iz))
+			// normal points from the solid block toward the empty space we came from:
+			switch lastAxis {
+			case 0:
+				// stepped in X, so normal is -stepX on X
+				return true, c.V3(float32(ix), float32(iy), float32(iz)), c.V3(float32(-lastStep), 0, 0)
+			case 1:
+				return true, c.V3(float32(ix), float32(iy), float32(iz)), c.V3(0, float32(-lastStep), 0)
+			case 2:
+				return true, c.V3(float32(ix), float32(iy), float32(iz)), c.V3(0, 0, float32(-lastStep))
+			default:
+				// shouldn't happen, but return without a normal
+				return true, c.V3(float32(ix), float32(iy), float32(iz)), c.V3Z
+			}
 		}
 	}
 
-	return false, c.V3Z
+	return false, c.V3Z, c.V3Z
 }
 
 // get a blockID from any world coordinate
@@ -224,8 +248,8 @@ func (world *World) GetBlockID(x, y, z int) Blocks.Type {
 	cy, ly := divFloor(y, c.CHUNK_SIZE)
 	cz, lz := divFloor(z, c.CHUNK_SIZE)
 
-	ch := world.Chunks.GetRef(cx, cy, cz)
-	if ch == nil || ch.Chunk.Empty {
+	ch := world.Chunks.Get(cx, cy, cz)
+	if ch == nil {
 		return Blocks.Air
 	}
 
@@ -246,7 +270,7 @@ func (world *World) LocalChunkPosToWorldPos(chunk *c.Chunk, lx, ly, lz int) (wx,
 // check if a block is air. If out of bounds, check neighbour chunks
 func (world *World) IsAir(chunk *c.Chunk, lx, ly, lz int) bool {
 	if lx >= 0 && lx < c.CHUNK_SIZE && ly >= 0 && ly < c.CHUNK_SIZE && lz >= 0 && lz < c.CHUNK_SIZE {
-		if chunk == nil || chunk.Empty {
+		if chunk == nil {
 			return true
 		}
 		return chunk.IsAir(lx, ly, lz)
@@ -259,75 +283,64 @@ func (world *World) IsAir(chunk *c.Chunk, lx, ly, lz int) bool {
 // SetBlockID sets the block at world coordinates (x,y,z).
 // Returns true if the block was set, false if the chunk was missing/empty.
 func (world *World) SetBlockID(x, y, z int, id Blocks.Type) bool {
-	// same divFloor used in GetBlockID
-	divFloor := func(n, size int) (chunkIdx, localIdx int) {
-		chunkIdx = n / size
-		localIdx = n % size
-		if localIdx < 0 {
-			chunkIdx--
-			localIdx += size
-		}
-		return
-	}
 
 	cx, lx := divFloor(x, c.CHUNK_SIZE)
 	cy, ly := divFloor(y, c.CHUNK_SIZE)
 	cz, lz := divFloor(z, c.CHUNK_SIZE)
 
-	ch := world.Chunks.GetRef(cx, cy, cz)
-	if ch == nil || ch.Chunk.Empty {
-		// chunk not loaded / empty — don't create here
+	ch := world.Chunks.Get(cx, cy, cz)
+	if ch == nil {
 		return false
 	}
 
-	// set via chunk API (you already use ch.Chunk.Get(...) elsewhere)
 	ch.Chunk.Set(lx, ly, lz, id)
-
-	// mark chunk as dirty so mesh can be rebuilt (replace with your actual method)
-	// world.MarkChunkDirty(cx, cy, cz)
 
 	return true
 }
 
 // ChunkAtWorld returns the chunk containing the world voxel (x,y,z),
 // the local indices inside that chunk (lx,ly,lz), and ok==true if the chunk exists and is not empty.
-func (world *World) ChunkAtWorld(x, y, z int) (chunk *ChunkMesh, lx, ly, lz int, ok bool) {
-	// divFloor returns (chunkIndex, localIndex) where localIndex is in [0..c.CHUNK_SIZE-1]
-	divFloor := func(n, size int) (chunkIdx, localIdx int) {
-		chunkIdx = n / size
-		localIdx = n % size
-		if localIdx < 0 {
-			chunkIdx--
-			localIdx += size
+func (world *World) ChunkAtWorld(x, y, z int) (chunk *ChunkMesh, ok bool) {
+
+	cx, _ := divFloor(x, c.CHUNK_SIZE)
+	cy, _ := divFloor(y, c.CHUNK_SIZE)
+	cz, _ := divFloor(z, c.CHUNK_SIZE)
+
+	var chunkMesh *ChunkMesh = world.Chunks.Get(cx, cy, cz)
+	if chunkMesh == nil {
+		return nil, false
+	}
+
+	return chunkMesh, true
+}
+
+// recalculate the mesh for this chunk and it's neighbours
+func (world *World) RefreshChunkMesh(chunkMesh *ChunkMesh) {
+	chunk := &chunkMesh.Chunk
+	top := world.Chunks.Get(chunk.X, chunk.Y+1, chunk.Z)
+	bottom := world.Chunks.Get(chunk.X, chunk.Y-1, chunk.Z)
+	left := world.Chunks.Get(chunk.X-1, chunk.Y, chunk.Z)
+	right := world.Chunks.Get(chunk.X+1, chunk.Y, chunk.Z)
+	front := world.Chunks.Get(chunk.X, chunk.Y, chunk.Z-1)
+	back := world.Chunks.Get(chunk.X, chunk.Y, chunk.Z+1)
+	var neighbours = [...]*ChunkMesh{top, bottom, left, right, front, back, chunkMesh}
+	for _, mesh := range neighbours {
+		if mesh != nil {
+			mesh.Unload()
+			vertices := mesh.BuildVerticies(world)
+			mesh.Setup(vertices)
 		}
-		return
 	}
 
-	cx, lx := divFloor(x, c.CHUNK_SIZE)
-	cy, ly := divFloor(y, c.CHUNK_SIZE)
-	cz, lz := divFloor(z, c.CHUNK_SIZE)
-
-	chRef := world.Chunks.GetRef(cx, cy, cz)
-	if chRef == nil || chRef.Chunk.Empty {
-		return nil, lx, ly, lz, false
-	}
-
-	// return pointer to the chunk value stored inside whatever GetRef returned
-	return chRef, lx, ly, lz, true
 }
 
-func distToBoundary(coord, dir float32, step int) float32 {
-	if dir == 0 {
-		return 1e30
+// divFloor returns (chunkIndex, localIndex) where localIndex is in [0..c.CHUNK_SIZE-1]
+func divFloor(n, size int) (chunkIdx, localIdx int) {
+	chunkIdx = n / size
+	localIdx = n % size
+	if localIdx < 0 {
+		chunkIdx--
+		localIdx += size
 	}
-	if step > 0 {
-		return (float32(int(coord)+1) - coord) / dir
-	}
-	return (coord - float32(int(coord))) / -dir
-}
-func abs(x float32) float32 {
-	if x < 0 {
-		return -x
-	}
-	return x
+	return
 }

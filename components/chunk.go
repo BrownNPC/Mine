@@ -2,6 +2,7 @@ package c
 
 import (
 	"GameFrameworkTM/components/Blocks"
+	"math"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -10,6 +11,8 @@ const CHUNK_SIZE = 32
 const CHUNK_SIZE_HALF = CHUNK_SIZE / 2
 const CHUNK_FACE_AREA = CHUNK_SIZE * CHUNK_SIZE
 const CHUNK_VOLUME = CHUNK_SIZE * CHUNK_FACE_AREA
+
+var CHUNK_SPHERE_RADIUS = CHUNK_SIZE_HALF * math.Sqrt(3)
 
 type Chunk struct {
 	X, Y, Z int
@@ -55,4 +58,12 @@ func (c *Chunk) GetModelMatrix() rl.Matrix {
 	return transform
 }
 
-
+// center in world coordinates
+func (c *Chunk) Center() Vec3 {
+	center := V3(
+		float32(c.X)+0.5,
+		float32(c.Y)+0.5,
+		float32(c.Z)+0.5,
+	).Scale(CHUNK_SIZE)
+	return center
+}

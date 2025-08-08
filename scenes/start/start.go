@@ -5,6 +5,7 @@ import (
 	"GameFrameworkTM/components/Blocks"
 	"GameFrameworkTM/engine"
 	"fmt"
+
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -19,13 +20,15 @@ type Scene struct {
 	atlas       rl.Texture2D
 	chunkShader rl.Shader
 	chunkMesh   ChunkMesh
+	// how far we can place or break blocks
+	reach int
 }
 
 // Load is called once the scene is switched to
 func (scene *Scene) Load(ctx engine.Context) {
 
-	scene.world = NewWorld(8, 2, 0)
-
+	scene.world = NewWorld(30, 2, 0)
+	scene.reach = 9
 	scene.cam = c.NewCamera(scene.world.Center(), 90, 10, 0.0036)
 	scene.skybox = LoadSkybox("assets/skybox.png")
 	scene.chunkShader = rl.LoadShader("shader/chunk.vert", "shader/chunk.frag")
@@ -71,23 +74,40 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 		ctx.MemoryStatsCords.X = 5
 		ctx.MemoryStatsCords.Y = 100 + 60
 	}
-	if rl.IsMouseButtonDown(rl.MouseButtonLeft) {
-		rl.DrawText(fmt.Sprint(scene.cam.LookVector()), 500, 0, 20, rl.Red)
-		hit, pos := scene.world.RaycastVoxel(scene.cam.Position, scene.cam.LookVector(), 6)
-		if hit {
-			rl.DrawRectangle(0, 0, 20, 20, rl.Lime)
-			rl.DrawText(fmt.Sprint(pos), 0, 400, 20, rl.Blue)
-			x, y, z := pos.ToInt()
-			scene.world.SetBlockID(x, y, z, Blocks.Dirt)
-			chunk, _, _, _, ok := scene.world.ChunkAtWorld(x, y, z)
-			if ok {
-				chunk.Unload()
-				vertices := chunk.BuildVerticies(&scene.world)
-				chunk.Setup(vertices)
-			}
+	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
+		scene.breakBlock()
+	} else if rl.IsMouseButtonPressed(rl.MouseButtonRight) {
+		scene.placeBlock()
+	}
+
+	return false // if true is returned, Unload is called
+}
+func (scene *Scene) placeBlock() {
+	hit, pos, normal := scene.world.RaycastVoxel(scene.cam.Position, scene.cam.LookVector(), float32(scene.reach))
+	if hit {
+		x, y, z := pos.Add(normal).ToInt()
+		ok := scene.world.SetBlockID(x, y, z, Blocks.Dirt)
+		if !ok {
+			return
+		}
+		chunk, ok := scene.world.ChunkAtWorld(x, y, z)
+		if ok {
+			chunk.Chunk.Empty = false
+			scene.world.RefreshChunkMesh(chunk)
 		}
 	}
-	return false // if true is returned, Unload is called
+}
+
+func (scene *Scene) breakBlock() {
+	hit, pos, _ := scene.world.RaycastVoxel(scene.cam.Position, scene.cam.LookVector(), float32(scene.reach))
+	if hit {
+		x, y, z := pos.ToInt()
+		scene.world.SetBlockID(x, y, z, Blocks.Air)
+		chunk, ok := scene.world.ChunkAtWorld(x, y, z)
+		if ok {
+			scene.world.RefreshChunkMesh(chunk)
+		}
+	}
 }
 
 // called after Update returns true
