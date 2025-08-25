@@ -2,6 +2,7 @@ package start
 
 import (
 	"GameFrameworkTM/components/Blocks"
+	"fmt"
 	"image"
 	"image/draw"
 	"image/png"
@@ -22,57 +23,50 @@ func getPathsForBlockID(blockID Blocks.Type) TexturePaths {
 		panic("No texture for block ID 0 (Air)")
 	}
 	base := blockID.String()
-	// each block has 3 textures.
-	// Block_top.png
-	// Block_side.png
-	// Block_bottom.png
-	top := filepath.Join(basepath, base+"_top.png")
-	side := filepath.Join(basepath, base+"_side.png")
-	bottom := filepath.Join(basepath, base+"_bottom.png")
 	return TexturePaths{
-		Top:    top,
-		Bottom: bottom,
-		Side:   side,
+		Top:    filepath.Join(basepath, base+"_top.png"),
+		Bottom: filepath.Join(basepath, base+"_bottom.png"),
+		Side:   filepath.Join(basepath, base+"_side.png"),
 	}
 }
 
 func CreateAtlas() image.Image {
-	// +1 since our for loop starts counting at 1.
-	// 0 is skipped because it's air, and does not have a texture.
-	// this is the same as using a map[Blocks.Type]TexturePaths
-	// but more optimized.
+	// Prepare texture paths for all blocks except Air
 	var textures [Blocks.TotalBlocks + 1]TexturePaths
 	for i := range Blocks.TotalBlocks {
 		if i == Blocks.Air {
 			continue
 		}
-		textures[i] = getPathsForBlockID(i)
+		texPath := getPathsForBlockID(Blocks.Type(i))
+		if texPath == (TexturePaths{}) {
+			log.Panicf("path for block ID %s is empty", Blocks.Type(i).String())
+		}
+		textures[i] = texPath
 	}
-	// textures are 16px
-	// 3 vairants of textures for each block
+
 	const atlasWidth = TexDimensions * 3
-	// number of blocks x 16px height
-	const atlasHeight = int(Blocks.TotalBlocks) * TexDimensions
+	const atlasHeight = (int(Blocks.TotalBlocks)) * TexDimensions
 
-	var finalAtlas = image.NewRGBA(image.Rect(0, 0, atlasWidth, atlasHeight))
+	finalAtlas := image.NewRGBA(image.Rect(0, 0, atlasWidth, atlasHeight))
 
-	// load the textures as images
 	for i, texPath := range textures {
-		textures := loadTextures(texPath)
-		// Y axis is block type
-		// X axis are faces
-		// in this order:
-		// top, bottom,side
+		if i == int(Blocks.Air) || texPath == (TexturePaths{}) {
+			continue
+		}
+
+		loaded := loadTextures(texPath)
+
+		// Calculate rectangles for top, bottom, side
 		topRect := image.Rect(0, TexDimensions*i, TexDimensions, TexDimensions*(i+1))
 		bottomRect := image.Rect(TexDimensions, TexDimensions*i, TexDimensions*2, TexDimensions*(i+1))
 		sideRect := image.Rect(TexDimensions*2, TexDimensions*i, TexDimensions*3, TexDimensions*(i+1))
 
-		// draw texture variant onto atlas
-		var Z = image.Pt(0, 0)
-		draw.Draw(finalAtlas, topRect, textures.Top, Z, draw.Over)
-		draw.Draw(finalAtlas, bottomRect, textures.Bottom, Z, draw.Over)
-		draw.Draw(finalAtlas, sideRect, textures.Side, Z, draw.Over)
+		// Draw them on the atlas
+		draw.Draw(finalAtlas, topRect, loaded.Top, image.Point{}, draw.Over)
+		draw.Draw(finalAtlas, bottomRect, loaded.Bottom, image.Point{}, draw.Over)
+		draw.Draw(finalAtlas, sideRect, loaded.Side, image.Point{}, draw.Over)
 	}
+
 	return finalAtlas
 }
 
@@ -82,34 +76,42 @@ type LoadedTextures struct {
 }
 
 func loadTextures(paths TexturePaths) LoadedTextures {
-	// load files
 	_top, err := os.Open(paths.Top)
-	check(err)
+	check(err, paths.Top)
 	defer _top.Close()
 
 	_bottom, err := os.Open(paths.Bottom)
-	check(err)
+	check(err, paths.Bottom)
 	defer _bottom.Close()
-	_side, err := os.Open(paths.Side)
 
-	check(err)
+	_side, err := os.Open(paths.Side)
+	check(err, paths.Side)
 	defer _side.Close()
 
-	// decode images
 	top, err := png.Decode(_top)
-	check(err)
-	bottom, err := png.Decode(_bottom)
-	check(err)
-	side, err := png.Decode(_side)
-	check(err)
+	if err != nil {
+		log.Panicf("failed to decode image %s: %v", paths.Top, err)
+	}
 
-	// return loaded images
+	bottom, err := png.Decode(_bottom)
+	if err != nil {
+		log.Panicf("failed to decode image %s: %v", paths.Bottom, err)
+	}
+
+	side, err := png.Decode(_side)
+	if err != nil {
+		log.Panicf("failed to decode image %s: %v", paths.Side, err)
+	}
+
 	return LoadedTextures{
 		Top:    top,
 		Bottom: bottom,
 		Side:   side,
 	}
 }
-func check(err error) {
-	log.Panic("Failed to load textures for block", err)
+
+func check(err error, path string) {
+	if err != nil {
+		log.Panic(fmt.Errorf("error for path: %s: %w", path, err))
+	}
 }

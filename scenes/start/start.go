@@ -39,9 +39,9 @@ func (scene *Scene) Load(ctx engine.Context) {
 
 	atlas := CreateAtlas()
 	atlasImg := rl.NewImageFromImage(atlas)
+	defer rl.UnloadImage(atlasImg)
+
 	scene.atlas = rl.LoadTextureFromImage(atlasImg)
-	rl.UnloadImage(atlasImg)
-	scene.atlas = rl.LoadTexture("assets/blocks/textures/Dirt_top.png")
 
 	tx0 := gl.GetUniformLocation(scene.chunkShader.ID, gl.Str("texture0\x00"))
 	gl.UseProgram(scene.chunkShader.ID)
