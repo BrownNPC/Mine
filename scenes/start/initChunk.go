@@ -44,8 +44,15 @@ func (world *World) InitChunk(chunk *c.Chunk, noiseGen opensimplex.Noise32) {
 func (world *World) getHeight(noiseGen opensimplex.Noise32, x, z int) int {
 	// amplitude
 	a1 := float32(world.CenterY)
+	a2, a4, a8 := a1*0.5, a1*0.25, a1*0.125
 	// frequency
 	const f1 = 0.005
+	const f2, f4, f8 = f1 * 2, f1 * 4, f1 * 8
 	height := noiseGen.Eval2(float32(x)*f1, float32(z)*f1)*a1 + a1
+	height += noiseGen.Eval2(float32(x)*f2, float32(z)*f2)*a2 + a2
+	height += noiseGen.Eval2(float32(x)*f4, float32(z)*f4)*a4 + a4
+	height += noiseGen.Eval2(float32(x)*f8, float32(z)*f8)*a8 + a8
+
+	height = max(height, 1)
 	return int(height)
 }
