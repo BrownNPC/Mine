@@ -9,9 +9,7 @@ import (
 
 func InitChunk(chunk *c.Chunk, noiseGen opensimplex.Noise32) {
 	const (
-		scale     = 0.01
-		heightMul = 32.0
-		heightAdd = 32.0
+		scale = 0.01
 	)
 
 	// compute world‐space corner of this chunk
@@ -30,8 +28,8 @@ func InitChunk(chunk *c.Chunk, noiseGen opensimplex.Noise32) {
 			localHeight := min(worldHeight-cy, c.CHUNK_SIZE)
 
 			for y := range localHeight {
-				wy := y + cy
-				chunk.Set(x, y, z, Blocks.Type(wy+1))
+				// wy := y + cy
+				chunk.Set(x, y, z, Blocks.Dirt)
 			}
 		}
 	}

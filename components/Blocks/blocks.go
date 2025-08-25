@@ -2,14 +2,14 @@ package Blocks
 
 type Type uint8
 
-//go:generate stringer -type=BlockType
+//go:generate stringer -type=Type
 const (
 	Air Type = iota
 	Dirt
 	Grass
-	len
+	_len
 )
-const TotalBlocks = len
+const TotalBlocks = _len
 
 type Direction uint8
 

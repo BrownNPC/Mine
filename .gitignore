@@ -1,2 +1,5 @@
 raylib.dll
 *.exe
+release
+*Zone.Identifier*
+*.bck

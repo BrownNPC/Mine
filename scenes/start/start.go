@@ -27,7 +27,7 @@ type Scene struct {
 // Load is called once the scene is switched to
 func (scene *Scene) Load(ctx engine.Context) {
 
-	scene.world = NewWorld(30, 2, 0)
+	scene.world = NewWorld(8, 8, 0)
 	scene.reach = 9
 	scene.cam = c.NewCamera(scene.world.Center(), 90, 10, 0.0036)
 	scene.skybox = LoadSkybox("assets/skybox.png")
@@ -37,7 +37,11 @@ func (scene *Scene) Load(ctx engine.Context) {
 	scene.world.BuildChunkMeshes()
 	fmt.Println("Meshed in", time.Since(start))
 
-	scene.atlas = rl.LoadTexture("assets/blocks/textures/Dirt.png")
+	atlas := CreateAtlas()
+	atlasImg := rl.NewImageFromImage(atlas)
+	scene.atlas = rl.LoadTextureFromImage(atlasImg)
+	rl.UnloadImage(atlasImg)
+	scene.atlas = rl.LoadTexture("assets/blocks/textures/Dirt_top.png")
 
 	tx0 := gl.GetUniformLocation(scene.chunkShader.ID, gl.Str("texture0\x00"))
 	gl.UseProgram(scene.chunkShader.ID)
@@ -52,10 +56,7 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 	rl.BeginMode3D(scene.cam.R())
 	scene.skybox.Draw(scene.cam.Position)
 
-	// rl.DisableBackfaceCulling()
-	// TODO: render world
 	scene.world.Render(scene.cam, scene.chunkShader, scene.atlas)
-	// rl.EnableBackfaceCulling()
 	rl.EndMode3D()
 	DrawCrosshair(30)
 	rl.DrawText(fmt.Sprintf("Speed: %.2f\nScroll to change", scene.cam.MoveSpeed), 5, 100, 20, rl.RayWhite)
@@ -63,7 +64,7 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 		if wheelMove > 0 {
 			scene.cam.MoveSpeed++
 		} else {
-			scene.cam.MoveSpeed--
+			scene.cam.MoveSpeed = max(scene.cam.MoveSpeed-1, 5)
 		}
 	}
 	if ctx.DebugMenuEnabled {

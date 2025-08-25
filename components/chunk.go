@@ -7,7 +7,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const CHUNK_SIZE = 32
+const CHUNK_SIZE = 16
 const CHUNK_SIZE_HALF = CHUNK_SIZE / 2
 const CHUNK_FACE_AREA = CHUNK_SIZE * CHUNK_SIZE
 const CHUNK_VOLUME = CHUNK_SIZE * CHUNK_FACE_AREA

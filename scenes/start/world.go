@@ -234,16 +234,6 @@ func (world *World) RaycastVoxel(origin, dir c.Vec3, maxDist float32) (bool, c.V
 // get a blockID from any world coordinate
 func (world *World) GetBlockID(x, y, z int) Blocks.Type {
 	// divFloor returns (chunkIndex, localIndex) where localIndex is in [0..c.CHUNK_SIZE-1]
-	divFloor := func(n, size int) (chunkIdx, localIdx int) {
-		chunkIdx = n / size
-		localIdx = n % size
-		if localIdx < 0 {
-			chunkIdx--
-			localIdx += size
-		}
-		return
-	}
-
 	cx, lx := divFloor(x, c.CHUNK_SIZE)
 	cy, ly := divFloor(y, c.CHUNK_SIZE)
 	cz, lz := divFloor(z, c.CHUNK_SIZE)

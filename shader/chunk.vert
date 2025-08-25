@@ -12,25 +12,23 @@ uniform mat4 matProjection;
 out vec3 voxel_color;
 out vec2 uv;
 out float shading;
-// out vec3 shading;
-// ambient occlusion has 4 states
-// full bright , half bright, 1/4 bright, DARK
-const float ao_values[4] = float[4](1, 0.5, 0.25, 0.1);
-// const vec3 ao_values[4] = vec3[4](
-//         vec3(1.0, 1.0, 1.0), // W
-//         vec3(1.0, 0.0, 0.0), // R
-//         vec3(0.0, 1.0, 0.0), // G
-//         vec3(0.0, 0.0, 1.0) // B
-//     );
+
+flat out int blockId;
+flat out int variant;
+
+// ambient occlusion has 4 states: full bright, half bright, 1/4 bright, DARK
+const float ao_values[4] = float[4](1.0, 0.5, 0.25, 0.1);
+
+// face shading values for top, bottom, right, left, front, back
 const float face_shading[6] = float[6](
-        1.0, 0.5, // top bottom
-        0.5, 0.8, // right left
-        0.5, 0.8 // front back
+        1.0, 0.5, // top, bottom
+        0.5, 0.8, // right, left
+        0.5, 0.8 // front, back
     );
 
 const vec2 uv_coords[4] = vec2[4](
-        vec2(0, 0), vec2(0, 1),
-        vec2(1, 0), vec2(1, 1)
+        vec2(0.0, 0.0), vec2(0.0, 1.0),
+        vec2(1.0, 0.0), vec2(1.0, 1.0)
     );
 
 const int uv_indices[12] = int[12](
@@ -44,13 +42,24 @@ vec3 hash31(float p) {
     return fract((p3.xxy + p3.yzz) * p3.zyx) + 0.05;
 }
 
+// which texture variant to use? top, bottom, or side?
+int getVariantForFace() {
+    if (faceDirection == 0) {
+        return 0;
+    } else if (faceDirection == 1) { // fixed typo "fa;ceDirection"
+        return 1;
+    }
+    return 2;
+}
+
 void main() {
     int uv_index = gl_VertexID % 6 + (faceDirection & 1) * 6;
     uv = uv_coords[uv_indices[uv_index]];
-    voxel_color = hash31(BlockId);
+    voxel_color = hash31(float(BlockId)); // BlockId cast to float
+    variant = getVariantForFace();
+    blockId = BlockId;
 
-    // shading = face_shading[faceDirection] * ao_values[ambientOcclusionState];
-    shading = ao_values[ambientOcclusionState];
+    shading = face_shading[faceDirection] * ao_values[ambientOcclusionState];
 
     mat4 mvp = matProjection * matView * matModel;
     gl_Position = mvp * vec4(InPosition, 1.0);

@@ -17,6 +17,10 @@ func MemoryStatsCollector() {
 		runtime.ReadMemStats(&mem)
 		MemStats.Store(mem)
 		time.Sleep(time.Second)
+		// more than 70 mb
+		if mem.HeapAlloc >= 70*1024*1024 {
+			runtime.GC()
+		}
 	}
 }
 
