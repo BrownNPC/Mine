@@ -7,6 +7,9 @@ const (
 	Air Type = iota
 	Dirt
 	Grass
+	PalmLeaves
+	PalmPlanks
+	PalmLog
 	_len
 )
 const TotalBlocks = _len

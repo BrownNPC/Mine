@@ -11,12 +11,15 @@ func _() {
 	_ = x[Air-0]
 	_ = x[Dirt-1]
 	_ = x[Grass-2]
-	_ = x[_len-3]
+	_ = x[PalmLeaves-3]
+	_ = x[PalmPlanks-4]
+	_ = x[PalmLog-5]
+	_ = x[_len-6]
 }
 
-const _Type_name = "AirDirtGrass_len"
+const _Type_name = "AirDirtGrassPalmLeavesPalmPlanksPalmLog_len"
 
-var _Type_index = [...]uint8{0, 3, 7, 12, 16}
+var _Type_index = [...]uint8{0, 3, 7, 12, 22, 32, 39, 43}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {

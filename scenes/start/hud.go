@@ -6,8 +6,6 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-
-
 func (scene *Scene) DrawHeldBlock() {
 	renderW := float32(rl.GetRenderWidth())
 	renderH := float32(rl.GetRenderHeight())
@@ -24,7 +22,7 @@ func (scene *Scene) DrawHeldBlock() {
 	width := float32(120) * scale
 	height := float32(120) * scale
 
-	rl.DrawTexturePro(scene.atlas, rect,
+	rl.DrawTexturePro(scene.HudAtlas, rect,
 		rl.NewRectangle(float32(topRightCorner-int(width)-5), 5, width, height),
 		c.V2Z.R(), 0, rl.White)
 }

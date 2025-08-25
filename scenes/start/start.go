@@ -17,9 +17,9 @@ type Scene struct {
 	skybox Skybox
 	world  World
 
-	atlas       rl.Texture2D
-	chunkShader rl.Shader
-	chunkMesh   ChunkMesh
+	atlas, HudAtlas rl.Texture2D
+	chunkShader     rl.Shader
+	chunkMesh       ChunkMesh
 
 	// how far we can place or break blocks
 	reach int
@@ -28,13 +28,14 @@ type Scene struct {
 	// index into the array above
 	CurrentMoveSpeedMode int
 	// the block currently in our hands.
-	HeldBlock Blocks.Type
+	HeldBlock        Blocks.Type
+	DebugMenuEnabled bool
 }
 
 // Load is called once the scene is switched to
 func (scene *Scene) Load(ctx engine.Context) {
 
-	scene.world = NewWorld(8, 8, 0)
+	scene.world = NewWorld(20, 7, 0)
 	scene.reach = 9
 	scene.HeldBlock = Blocks.Grass
 
@@ -52,11 +53,11 @@ func (scene *Scene) Load(ctx engine.Context) {
 	atlasImg := rl.NewImageFromImage(atlas)
 	defer rl.UnloadImage(atlasImg)
 
-	scene.atlas = rl.LoadTextureFromImage(atlasImg)
-
-	tx0 := gl.GetUniformLocation(scene.chunkShader.ID, gl.Str("texture0\x00"))
+	tx0 := rl.GetShaderLocation(scene.chunkShader, "texture0")
 	gl.UseProgram(scene.chunkShader.ID)
 	gl.Uniform1i(tx0, 0)
+	scene.atlas = rl.LoadTextureFromImage(atlasImg)
+	scene.HudAtlas = rl.LoadTextureFromImage(atlasImg)
 
 	rl.SetTargetFPS(240)
 }
@@ -79,8 +80,7 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 
 	rl.GetKeyPressed()
 
-	rl.DrawTexture(scene.atlas, 300, 300, rl.White)
-	rl.DrawText(fmt.Sprintf("Speed: %.2f\nCtrl to change", scene.cam.MoveSpeed), 5, 100, 20, rl.RayWhite)
+	rl.DrawText(fmt.Sprintf("Speed: %.2f\nCtrl to change", scene.cam.MoveSpeed), 5, 140, 20, rl.RayWhite)
 	if rl.IsKeyPressed(rl.KeyLeftControl) {
 		// 0, 1 or 2
 		scene.CurrentMoveSpeedMode++
@@ -90,19 +90,30 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 	// scroll block
 	if wheelMove := rl.GetMouseWheelMoveV().Y; wheelMove != 0 {
 		if wheelMove > 0 {
-			scene.HeldBlock = min(scene.HeldBlock+1,Blocks.TotalBlocks-1)
+			scene.HeldBlock++
+			if scene.HeldBlock == Blocks.TotalBlocks {
+				scene.HeldBlock--
+			}
 		} else {
 			// 0 is air, we dont want the player to hold air.
-			scene.HeldBlock = max(scene.HeldBlock-1, 1)
+			scene.HeldBlock--
+			if scene.HeldBlock == 0 {
+				scene.HeldBlock = 1
+			}
 		}
 	}
-	if ctx.DebugMenuEnabled {
+	if rl.IsKeyPressed(rl.KeyF3) {
+		scene.DebugMenuEnabled = !scene.DebugMenuEnabled
+	}
+
+	if scene.DebugMenuEnabled {
 		rl.DrawFPS(10, 10)
 		// Draw Coordinates
-		rl.DrawText(scene.cam.Position.String(), 5, 30, ctx.DebugFontSize, rl.RayWhite)
+		rl.DrawText(scene.cam.Position.String(), 5, 30, 20, rl.RayWhite)
 		rl.DrawText(fmt.Sprintf("World Size: %dx%dx%d (%d chunks)", scene.world.Width, scene.world.Height, scene.world.Depth, scene.world.Volume), 5, 70, 20, rl.RayWhite)
-		ctx.MemoryStatsCords.X = 5
-		ctx.MemoryStatsCords.Y = 100 + 60
+		rl.DrawText(fmt.Sprintf("Held Block %s", scene.HeldBlock.String()), 5, 90, 20, rl.White)
+
+		// draw HeldBlock
 	}
 	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
 		scene.breakBlock()

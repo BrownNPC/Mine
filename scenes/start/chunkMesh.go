@@ -37,7 +37,7 @@ func (m *ChunkMesh) Setup(vertices []byte) {
 	c.SetupMesh(&m.BaseMesh, gl.Ptr(vertices), c.TotalBytes(vertices), attrib)
 }
 func (m *ChunkMesh) Render(cam c.Camera, shader rl.Shader, texture rl.Texture2D) {
-	if m.Chunk.Empty ||!cam.IsInView(&m.Chunk) {
+	if m.Chunk.Empty || !cam.IsInView(&m.Chunk) {
 		return
 	}
 	model := m.Chunk.GetModelMatrix()
