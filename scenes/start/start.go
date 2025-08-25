@@ -74,14 +74,30 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 		panic("player should never hold air")
 	}
 	// draw held block
+	renderW := float32(rl.GetRenderWidth())
+	renderH := float32(rl.GetRenderHeight())
+	currentAspect := renderW / renderH
+	targetAspect := float32(1920) / float32(1080)
+	var scale float32
+	if currentAspect > targetAspect {
+		scale = renderH / float32(1080)
+	} else {
+		scale = renderW / float32(1920)
+	}
 	rect := AtlasCoordinates(scene.HeldBlock)
 	topRightCorner := rl.GetRenderWidth()
-	rl.DrawTextureRec(scene.atlas, rect, c.V2(topRightCorner-5, 5).R(), rl.White)
+	width := float32(120) * scale
+	height := float32(120) * scale
+
+	rl.DrawTexturePro(scene.atlas, rect,
+		rl.NewRectangle(float32(topRightCorner-int(width)-5), 5, width, height),
+		c.V2Z.R(), 0, rl.White)
+	// rl.DrawTextureRec(scene.atlas, rect, c.V2(topRightCorner-5, 5).R(), rl.White)
 
 	rl.GetKeyPressed()
 
 	rl.DrawTexture(scene.atlas, 300, 300, rl.White)
-	rl.DrawText(fmt.Sprintf("Speed: %.2f\n Ctrl to change", scene.cam.MoveSpeed), 5, 100, 20, rl.RayWhite)
+	rl.DrawText(fmt.Sprintf("Speed: %.2f\nCtrl to change", scene.cam.MoveSpeed), 5, 100, 20, rl.RayWhite)
 	if rl.IsKeyPressed(rl.KeyLeftControl) {
 		// 0, 1 or 2
 		scene.CurrentMoveSpeedMode++
