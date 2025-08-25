@@ -19,6 +19,7 @@ type World struct {
 	NoiseGenerator      opensimplex.Noise32
 }
 
+// NewWorld generates terrain using the provided seed.
 func NewWorld(width, height int, seed int64) World {
 	world := World{
 		Width:  width,
@@ -40,7 +41,7 @@ func NewWorld(width, height int, seed int64) World {
 		for y := range world.Height {
 			for z := range world.Depth {
 				mesh := NewChunkMesh(x, y, z)
-				InitChunk(&mesh.Chunk, world.NoiseGenerator)
+				world.InitChunk(&mesh.Chunk, world.NoiseGenerator)
 				world.Chunks.Set(x, y, z, mesh)
 			}
 		}

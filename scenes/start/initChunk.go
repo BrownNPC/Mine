@@ -7,7 +7,8 @@ import (
 	"github.com/ojrac/opensimplex-go"
 )
 
-func InitChunk(chunk *c.Chunk, noiseGen opensimplex.Noise32) {
+// InitChunk generates terrain
+func (world *World) InitChunk(chunk *c.Chunk, noiseGen opensimplex.Noise32) {
 	const (
 		scale = 0.01
 	)
@@ -18,12 +19,11 @@ func InitChunk(chunk *c.Chunk, noiseGen opensimplex.Noise32) {
 	cz := chunk.Z * c.CHUNK_SIZE
 
 	for x := range c.CHUNK_SIZE {
+		wx := x + cx
 		for z := range c.CHUNK_SIZE {
-			wx := x + cx
 			wz := z + cz
 
-			n := noiseGen.Eval2(float32(wx)*scale, float32(wz)*scale)
-			worldHeight := int(n*c.CHUNK_SIZE + c.CHUNK_SIZE)
+			worldHeight := world.getHeight(noiseGen, wx, wz)
 
 			localHeight := min(worldHeight-cy, c.CHUNK_SIZE)
 
@@ -40,4 +40,12 @@ func InitChunk(chunk *c.Chunk, noiseGen opensimplex.Noise32) {
 		}
 	}
 	chunk.Empty = true
+}
+func (world *World) getHeight(noiseGen opensimplex.Noise32, x, z int) int {
+	// amplitude
+	a1 := float32(world.CenterY)
+	// frequency
+	const f1 = 0.005
+	height := noiseGen.Eval2(float32(x)*f1, float32(z)*f1)*a1 + a1
+	return int(height)
 }
