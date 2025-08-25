@@ -20,8 +20,15 @@ type Scene struct {
 	atlas       rl.Texture2D
 	chunkShader rl.Shader
 	chunkMesh   ChunkMesh
+
 	// how far we can place or break blocks
 	reach int
+	// 3 modes. normal, slow, fast
+	moveSpeedModes [3]int
+	// index into the array above
+	CurrentMoveSpeedMode int
+	// the block currently in our hands.
+	HeldBlock Blocks.Type
 }
 
 // Load is called once the scene is switched to
@@ -29,7 +36,11 @@ func (scene *Scene) Load(ctx engine.Context) {
 
 	scene.world = NewWorld(8, 8, 0)
 	scene.reach = 9
+	scene.HeldBlock = Blocks.Grass
+
 	scene.cam = c.NewCamera(scene.world.Center(), 90, 10, 0.0036)
+	scene.moveSpeedModes = [3]int{15, 5, 35}
+
 	scene.skybox = LoadSkybox("assets/skybox.png")
 	scene.chunkShader = rl.LoadShader("shader/chunk.vert", "shader/chunk.frag")
 
@@ -59,14 +70,23 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 	scene.world.Render(scene.cam, scene.chunkShader, scene.atlas)
 	rl.EndMode3D()
 	DrawCrosshair(30)
+	if scene.HeldBlock == Blocks.Air {
+		panic("player should never hold air")
+	}
+	// draw held block
+	rect := AtlasCoordinates(scene.HeldBlock)
+	topRightCorner := rl.GetRenderWidth()
+	rl.DrawTextureRec(scene.atlas, rect, c.V2(topRightCorner-5, 5).R(), rl.White)
+
+	rl.GetKeyPressed()
+
 	rl.DrawTexture(scene.atlas, 300, 300, rl.White)
-	rl.DrawText(fmt.Sprintf("Speed: %.2f\nScroll to change", scene.cam.MoveSpeed), 5, 100, 20, rl.RayWhite)
-	if wheelMove := rl.GetMouseWheelMoveV().Y; wheelMove != 0 {
-		if wheelMove > 0 {
-			scene.cam.MoveSpeed++
-		} else {
-			scene.cam.MoveSpeed = max(scene.cam.MoveSpeed-1, 5)
-		}
+	rl.DrawText(fmt.Sprintf("Speed: %.2f\n Ctrl to change", scene.cam.MoveSpeed), 5, 100, 20, rl.RayWhite)
+	if rl.IsKeyPressed(rl.KeyLeftControl) {
+		// 0, 1 or 2
+		scene.CurrentMoveSpeedMode++
+		scene.CurrentMoveSpeedMode %= len(scene.moveSpeedModes)
+		scene.cam.MoveSpeed = float32(scene.moveSpeedModes[scene.CurrentMoveSpeedMode])
 	}
 	if ctx.DebugMenuEnabled {
 		rl.DrawFPS(10, 10)
@@ -88,7 +108,7 @@ func (scene *Scene) placeBlock() {
 	hit, pos, normal := scene.world.RaycastVoxel(scene.cam.Position, scene.cam.LookVector(), float32(scene.reach))
 	if hit {
 		x, y, z := pos.Add(normal).ToInt()
-		ok := scene.world.SetBlockID(x, y, z, Blocks.Dirt)
+		ok := scene.world.SetBlockID(x, y, z, scene.HeldBlock)
 		if !ok {
 			return
 		}

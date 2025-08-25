@@ -9,6 +9,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type TexturePaths struct {
@@ -114,4 +116,14 @@ func check(err error, path string) {
 	if err != nil {
 		log.Panic(fmt.Errorf("error for path: %s: %w", path, err))
 	}
+}
+
+// get top face atlas coordinates
+func AtlasCoordinates(blockId Blocks.Type) rl.Rectangle {
+	atlasColumns := int(Blocks.TotalBlocks)
+	// top face is 0, bottom is 1, side is 2
+	x := float32(0)
+	y := float32(atlasColumns * int(blockId))
+
+	return rl.NewRectangle(x, y, 16, 16)
 }
