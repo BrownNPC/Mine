@@ -46,7 +46,7 @@ vec3 hash31(float p) {
 int getVariantForFace() {
     if (faceDirection == 0) {
         return 0;
-    } else if (faceDirection == 1) { // fixed typo "fa;ceDirection"
+    } else if (faceDirection == 1) { 
         return 1;
     }
     return 2;
@@ -55,7 +55,7 @@ int getVariantForFace() {
 void main() {
     int uv_index = gl_VertexID % 6 + (faceDirection & 1) * 6;
     uv = uv_coords[uv_indices[uv_index]];
-    voxel_color = hash31(float(BlockId)); // BlockId cast to float
+    voxel_color = hash31(float(BlockId)); 
     variant = getVariantForFace();
     blockId = BlockId;
 

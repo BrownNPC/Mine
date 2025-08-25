@@ -59,6 +59,7 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 	scene.world.Render(scene.cam, scene.chunkShader, scene.atlas)
 	rl.EndMode3D()
 	DrawCrosshair(30)
+	rl.DrawTexture(scene.atlas, 300, 300, rl.White)
 	rl.DrawText(fmt.Sprintf("Speed: %.2f\nScroll to change", scene.cam.MoveSpeed), 5, 100, 20, rl.RayWhite)
 	if wheelMove := rl.GetMouseWheelMoveV().Y; wheelMove != 0 {
 		if wheelMove > 0 {
