@@ -74,24 +74,7 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 		panic("player should never hold air")
 	}
 	// draw held block
-	renderW := float32(rl.GetRenderWidth())
-	renderH := float32(rl.GetRenderHeight())
-	currentAspect := renderW / renderH
-	targetAspect := float32(1920) / float32(1080)
-	var scale float32
-	if currentAspect > targetAspect {
-		scale = renderH / float32(1080)
-	} else {
-		scale = renderW / float32(1920)
-	}
-	rect := AtlasCoordinates(scene.HeldBlock)
-	topRightCorner := rl.GetRenderWidth()
-	width := float32(120) * scale
-	height := float32(120) * scale
-
-	rl.DrawTexturePro(scene.atlas, rect,
-		rl.NewRectangle(float32(topRightCorner-int(width)-5), 5, width, height),
-		c.V2Z.R(), 0, rl.White)
+	scene.DrawHeldBlock()
 	// rl.DrawTextureRec(scene.atlas, rect, c.V2(topRightCorner-5, 5).R(), rl.White)
 
 	rl.GetKeyPressed()
@@ -103,6 +86,15 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 		scene.CurrentMoveSpeedMode++
 		scene.CurrentMoveSpeedMode %= len(scene.moveSpeedModes)
 		scene.cam.MoveSpeed = float32(scene.moveSpeedModes[scene.CurrentMoveSpeedMode])
+	}
+	// scroll block
+	if wheelMove := rl.GetMouseWheelMoveV().Y; wheelMove != 0 {
+		if wheelMove > 0 {
+			scene.HeldBlock = min(scene.HeldBlock+1,Blocks.TotalBlocks-1)
+		} else {
+			// 0 is air, we dont want the player to hold air.
+			scene.HeldBlock = max(scene.HeldBlock-1, 1)
+		}
 	}
 	if ctx.DebugMenuEnabled {
 		rl.DrawFPS(10, 10)
@@ -120,6 +112,7 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 
 	return false // if true is returned, Unload is called
 }
+
 func (scene *Scene) placeBlock() {
 	hit, pos, normal := scene.world.RaycastVoxel(scene.cam.Position, scene.cam.LookVector(), float32(scene.reach))
 	if hit {
