@@ -3,12 +3,10 @@ package start
 import (
 	c "GameFrameworkTM/components"
 	"GameFrameworkTM/components/Blocks"
-
-	"github.com/ojrac/opensimplex-go"
 )
 
 // InitChunk generates terrain
-func (world *World) InitChunk(chunk *c.Chunk, noiseGen opensimplex.Noise32) {
+func (world *World) InitChunk(chunk *c.Chunk) {
 	const (
 		scale = 0.01
 	)
@@ -23,7 +21,7 @@ func (world *World) InitChunk(chunk *c.Chunk, noiseGen opensimplex.Noise32) {
 		for z := range c.CHUNK_SIZE {
 			wz := z + cz
 
-			worldHeight := world.getHeight(noiseGen, wx, wz)
+			worldHeight := world.getHeight(wx, wz)
 
 			localHeight := min(worldHeight-cy, c.CHUNK_SIZE)
 
@@ -41,7 +39,8 @@ func (world *World) InitChunk(chunk *c.Chunk, noiseGen opensimplex.Noise32) {
 	}
 	chunk.Empty = true
 }
-func (world *World) getHeight(noiseGen opensimplex.Noise32, x, z int) int {
+func (world *World) getHeight(x, z int) int {
+	noiseGen := world.NoiseGenerator
 	// amplitude
 	a1 := float32(world.CenterY)
 	a2, a4, a8 := a1*0.5, a1*0.25, a1*0.125

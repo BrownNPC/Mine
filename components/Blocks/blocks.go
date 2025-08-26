@@ -5,8 +5,11 @@ type Type uint8
 //go:generate stringer -type=Type
 const (
 	Air Type = iota
+	Stone
 	Dirt
+	Sand
 	Grass
+	Snow
 	PalmLeaves
 	PalmPlanks
 	PalmLog

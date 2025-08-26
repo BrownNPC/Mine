@@ -41,7 +41,7 @@ func NewWorld(width, height int, seed int64) World {
 		for y := range world.Height {
 			for z := range world.Depth {
 				mesh := NewChunkMesh(x, y, z)
-				world.InitChunk(&mesh.Chunk, world.NoiseGenerator)
+				world.InitChunk(&mesh.Chunk)
 				world.Chunks.Set(x, y, z, mesh)
 			}
 		}
