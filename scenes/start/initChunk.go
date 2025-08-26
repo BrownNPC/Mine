@@ -30,7 +30,7 @@ func (world *World) InitChunk(chunk *c.Chunk) {
 				// worldY
 				// position of this voxel within the world
 				wy := y + cy
-				chunk.Set(x, y, z, world.GetBlockForYlevel(wx, wy, worldHeight))
+				chunk.Set(x, y, z, world.GetBlockForYlevel(wx, wy, wz, worldHeight))
 			}
 		}
 	}
@@ -60,7 +60,7 @@ func (world *World) getHeightMap(x, z int) int {
 	height = max(height, 1)
 	return int(height)
 }
-func (world *World) GetBlockForYlevel(blockX, blockY int, WorldHeight int) Blocks.Type {
+func (world *World) GetBlockForYlevel(blockX, blockY, blockZ int, WorldHeight int) Blocks.Type {
 	// chunk levels for each block. 128 is max height
 	const (
 		snow  = 90
@@ -71,6 +71,17 @@ func (world *World) GetBlockForYlevel(blockX, blockY int, WorldHeight int) Block
 
 	// bottom chunks are stone
 	if blockY < world.Height-1 {
+		// create caves
+		const caveScale3D = 0.09
+		const caveFloorScale2D = 0.1
+		// where caves can exist
+		cave3d := world.NoiseGenerator.Eval3(float32(blockX)*caveScale3D, float32(blockY)*caveScale3D, float32(blockZ)*caveScale3D)
+		// cave floor limit
+		floorNoise := world.NoiseGenerator.Eval2(float32(blockX), float32(blockZ))
+		minCaveY := int(floorNoise*3 + 3) // -1 to 0  -> 0-6
+		if cave3d > 0 && blockY > minCaveY && blockY < WorldHeight-10 {
+			return Blocks.Air
+		}
 		return Blocks.Stone
 	} else {
 		rng := world.RNG.Intn(7)

@@ -24,6 +24,8 @@ func (m *ChunkMesh) Setup(vertices []byte) {
 	if len(vertices) == 0 {
 		m.Chunk.Empty = true
 		return
+	} else {
+		m.Chunk.Empty = false
 	}
 
 	attrib := []c.VertexAttrib{
@@ -38,6 +40,9 @@ func (m *ChunkMesh) Setup(vertices []byte) {
 }
 func (m *ChunkMesh) Render(cam c.Camera, shader rl.Shader, texture rl.Texture2D) {
 	if m.Chunk.Empty || !cam.IsInView(&m.Chunk) {
+		return
+	}
+	if !cam.IsInView(&m.Chunk) {
 		return
 	}
 	model := m.Chunk.GetModelMatrix()
