@@ -21,14 +21,16 @@ func (world *World) InitChunk(chunk *c.Chunk) {
 		for z := range c.CHUNK_SIZE {
 			wz := z + cz
 
+			// for this strip of voxels
 			worldHeight := world.getHeightMap(wx, wz)
 
 			localHeight := min(worldHeight-cy, c.CHUNK_SIZE)
 
 			for y := range localHeight {
 				// worldY
+				// position of this voxel within the world
 				wy := y + cy
-				chunk.Set(x, y, z, world.GetBlockForYlevel(wx, wy))
+				chunk.Set(x, y, z, world.GetBlockForYlevel(wx, wy, worldHeight))
 			}
 		}
 	}
@@ -44,7 +46,7 @@ func (world *World) InitChunk(chunk *c.Chunk) {
 func (world *World) getHeightMap(x, z int) int {
 	noiseGen := world.NoiseGenerator
 	// amplitude
-	a1 := float32(world.CenterY) * 0.75
+	a1 := float32(world.CenterY) * 0.7
 	a2, a4, a8 := a1*0.5, a1*0.25, a1*0.125
 	// frequency
 	const f1 = 0.005
@@ -58,22 +60,31 @@ func (world *World) getHeightMap(x, z int) int {
 	height = max(height, 1)
 	return int(height)
 }
-func (world *World) GetBlockForYlevel(WorldX, WorldY int) Blocks.Type {
+func (world *World) GetBlockForYlevel(blockX, blockY int, WorldHeight int) Blocks.Type {
 	// chunk levels for each block. 128 is max height
 	const (
-		snow  = 128
-		stone = 100
-		dirt  = 40
-		sand  = 7
+		snow  = 90
+		dirt  = 85
+		stone = 78
+		grass = 8
 	)
 
 	// bottom chunks are stone
-	if WorldY < world.Height-1 {
+	if blockY < world.Height-1 {
 		return Blocks.Stone
 	} else {
-		if WorldY < snow && WorldY > stone {
+		rng := world.RNG.Intn(7)
+		ry := blockY - rng
+		if snow <= ry && ry < WorldHeight {
 			return Blocks.Snow
+		} else if stone <= ry && ry < snow {
+			return Blocks.Stone
+		} else if dirt <= ry && ry < stone {
+			return Blocks.Dirt
+		} else if grass <= ry && ry < dirt {
+			return Blocks.Grass
+		} else {
+			return Blocks.Sand
 		}
 	}
-	return Blocks.Dirt
 }
