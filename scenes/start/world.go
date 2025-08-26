@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sync"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -20,20 +21,21 @@ type World struct {
 	CenterXZ, CenterY   int
 	Chunks              c.ThreeDimensionalArray[*ChunkMesh]
 	NoiseGenerator      opensimplex.Noise32
-	RNG                 *rand.Rand
+	rng                 *rand.Rand
+	rngMu               sync.Mutex
 	// number between 0-1
 	// used for height map
 	Corrosion float32
 }
 
 // NewWorld generates terrain using the provided seed.
-func NewWorld(width, height int, seed int64) World {
-	world := World{
+func NewWorld(width, height int, seed int64) *World {
+	world := &World{
 		Width:  width,
 		Height: height,
 		Depth:  width,
 	}
-	world.RNG = rand.New(rand.NewSource(seed))
+	world.rng = rand.New(rand.NewSource(seed))
 	world.Area = world.Width * world.Depth
 	world.Volume = world.Area * world.Height
 	world.CenterXZ = world.Width * c.CHUNK_SIZE_HALF
@@ -46,20 +48,26 @@ func NewWorld(width, height int, seed int64) World {
 
 	// arrange chunks
 	start := time.Now()
+	var wg sync.WaitGroup
 	for x := range world.Width {
 		for y := range world.Height {
 			for z := range world.Depth {
-				mesh := NewChunkMesh(x, y, z)
-				world.InitChunk(&mesh.Chunk)
-				world.Chunks.Set(x, y, z, mesh)
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					mesh := NewChunkMesh(x, y, z)
+					world.InitChunk(&mesh.Chunk)
+					world.Chunks.Set(x, y, z, mesh)
+				}()
 			}
 		}
 	}
+	wg.Wait()
 	fmt.Println("Arranged chunks in", time.Since(start))
 	return world
 }
 
-func (world World) Center() c.Vec3 {
+func (world *World) Center() c.Vec3 {
 	return c.V3(world.CenterXZ, world.Height*c.CHUNK_SIZE, world.CenterXZ)
 }
 
@@ -69,12 +77,10 @@ func (world *World) BuildChunkMeshes() {
 	for x := range world.Width {
 		for y := range world.Height {
 			for z := range world.Depth {
-
 				chunk := world.Chunks.Get(x, y, z)
 				// Setup this chunk with its neighbors
 				vertices := chunk.BuildVerticies(world)
 				chunk.Setup(vertices)
-
 			}
 		}
 	}
@@ -298,6 +304,7 @@ func (world *World) SetBlockID(x, y, z int, id Blocks.Type) bool {
 
 // ChunkAtWorld returns the chunk containing the world voxel (x,y,z),
 // the local indices inside that chunk (lx,ly,lz), and ok==true if the chunk exists and is not empty.
+// NOT CONCURRENT SAFE
 func (world *World) ChunkAtWorld(x, y, z int) (chunk *ChunkMesh, ok bool) {
 
 	cx, _ := divFloor(x, c.CHUNK_SIZE)
@@ -330,6 +337,12 @@ func (world *World) RefreshChunkMesh(chunkMesh *ChunkMesh) {
 		}
 	}
 
+}
+
+// Wrap rand.Rand in a mutex
+func (world *World) GetRNG() (rng *rand.Rand, unlock func()) {
+	world.rngMu.Lock()
+	return world.rng, world.rngMu.Unlock
 }
 
 // divFloor returns (chunkIndex, localIndex) where localIndex is in [0..c.CHUNK_SIZE-1]

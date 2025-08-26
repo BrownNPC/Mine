@@ -48,7 +48,7 @@ func Run(scenes Scenes, cfg Config) error {
 			Heght int
 			Seed  int64
 		}{
-			Width: 20,
+			Width: 10,
 			Heght: 8,
 			Seed:  int64(time.Now().Nanosecond()),
 		},

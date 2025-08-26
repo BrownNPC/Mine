@@ -49,7 +49,7 @@ func (world *World) getHeightMap(x, z int) int {
 	a1 := float32(world.CenterY) * 0.7
 	a2, a4, a8 := a1*0.5, a1*0.25, a1*0.125
 	// frequency
-	const f1 = 0.005
+	const f1 = 0.007
 	const f2, f4, f8 = f1 * 2, f1 * 4, f1 * 8
 
 	height := noiseGen.Eval2(float32(x)*f1, float32(z)*f1)*a1 + a1
@@ -66,7 +66,7 @@ func (world *World) GetBlockForYlevel(blockX, blockY, blockZ int, WorldHeight in
 		snow  = 90
 		dirt  = 85
 		stone = 78
-		grass = 8
+		grass = 50
 	)
 
 	// bottom chunks are stone
@@ -84,7 +84,10 @@ func (world *World) GetBlockForYlevel(blockX, blockY, blockZ int, WorldHeight in
 		}
 		return Blocks.Stone
 	} else {
-		rng := world.RNG.Intn(7)
+		rand, unlock := world.GetRNG()
+		rng := rand.Intn(7)
+		unlock()
+
 		ry := blockY - rng
 		if snow <= ry && ry < WorldHeight {
 			return Blocks.Snow

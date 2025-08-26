@@ -29,7 +29,7 @@ func BuildWindows() {
 	cmd := exec.Command("rm", "./Mine.exe")
 	cmd.Run()
 
-	cmd = exec.Command("go", "build", "-v", "-o", "Mine.exe", ".")
+	cmd = exec.Command("go", "build",  "-v", "-o", "Mine.exe", ".")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()

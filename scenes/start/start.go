@@ -15,7 +15,7 @@ import (
 type Scene struct {
 	cam    c.Camera
 	skybox Skybox
-	world  World
+	world  *World
 
 	atlas, HudAtlas rl.Texture2D
 	chunkShader     rl.Shader
