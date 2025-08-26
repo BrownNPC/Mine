@@ -5,6 +5,7 @@ import (
 	"GameFrameworkTM/components/Blocks"
 	"fmt"
 	"math"
+	"math/rand"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -12,11 +13,17 @@ import (
 )
 
 type World struct {
-	Width, Height       int
+	Width, Height int
+	//build limit
+	MaxHeight           int
 	Depth, Volume, Area int
 	CenterXZ, CenterY   int
 	Chunks              c.ThreeDimensionalArray[*ChunkMesh]
 	NoiseGenerator      opensimplex.Noise32
+	RNG                 *rand.Rand
+	// number between 0-1
+	// used for height map
+	Corrosion float32
 }
 
 // NewWorld generates terrain using the provided seed.
@@ -26,10 +33,12 @@ func NewWorld(width, height int, seed int64) World {
 		Height: height,
 		Depth:  width,
 	}
+	world.RNG = rand.New(rand.NewSource(seed))
 	world.Area = world.Width * world.Depth
 	world.Volume = world.Area * world.Height
 	world.CenterXZ = world.Width * c.CHUNK_SIZE_HALF
 	world.CenterY = world.Height * c.CHUNK_SIZE_HALF
+	world.MaxHeight = height * c.CHUNK_SIZE
 	// volume
 	world.Chunks = c.New3dArray[*ChunkMesh](world.Width, world.Height, world.Depth)
 

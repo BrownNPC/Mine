@@ -35,7 +35,7 @@ type Scene struct {
 // Load is called once the scene is switched to
 func (scene *Scene) Load(ctx engine.Context) {
 
-	scene.world = NewWorld(20, 7, 0)
+	scene.world = NewWorld(ctx.WorldGenConfig.Width, ctx.WorldGenConfig.Heght, ctx.WorldGenConfig.Seed)
 	scene.reach = 9
 	scene.HeldBlock = Blocks.Grass
 

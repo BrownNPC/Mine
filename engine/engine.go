@@ -4,6 +4,7 @@ import (
 	c "GameFrameworkTM/components"
 	"errors"
 	"fmt"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/go-gl/gl/v3.3-core/gl"
@@ -21,6 +22,11 @@ type Config struct {
 // info to pass to scenes
 // eg. a camera, game map, or save file
 type Context struct {
+	// passed to start scene, configuration for world seed, size etc.
+	WorldGenConfig *struct {
+		Width, Heght int
+		Seed         int64
+	}
 }
 
 // a scene must implement these methods
@@ -36,7 +42,17 @@ type Scenes map[string]scene
 func Run(scenes Scenes, cfg Config) error {
 	ActiveSceneId := "start" // look for a scene named start as entry-point
 	ActiveScene, ok := scenes[ActiveSceneId]
-	ctx := Context{} // info to pass to scenes.
+	ctx := Context{
+		WorldGenConfig: &struct {
+			Width int
+			Heght int
+			Seed  int64
+		}{
+			Width: 20,
+			Heght: 8,
+			Seed:  int64(time.Now().Nanosecond()),
+		},
+	} // info to pass to scenes.
 	if !ok {
 		return errors.New(`Cannot start. There must be a scene with id "start" that is the entry-point`)
 	} else if ActiveScene == nil {
