@@ -74,6 +74,12 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 	if scene.HeldBlock == Blocks.Air {
 		panic("player should never hold air")
 	}
+	if rl.IsKeyPressed(rl.KeyF6) {
+		scene.world.Unload()
+		scene.world = nil
+		scene.world = NewWorld(ctx.WorldGenConfig.Width, ctx.WorldGenConfig.Heght, int64(time.Now().Nanosecond()))
+		scene.world.BuildChunkMeshes()
+	}
 	// draw held block
 	scene.DrawHeldBlock()
 	// rl.DrawTextureRec(scene.atlas, rect, c.V2(topRightCorner-5, 5).R(), rl.White)
@@ -155,5 +161,6 @@ func (scene *Scene) breakBlock() {
 // called after Update returns true
 func (scene *Scene) Unload(ctx engine.Context) (nextSceneID string) {
 	scene.skybox.Unload()
+	rl.UnloadShader(scene.chunkShader)
 	return "someOtherSceneId" // the engine will switch to the scene that is registered with this id
 }

@@ -339,6 +339,16 @@ func (world *World) RefreshChunkMesh(chunkMesh *ChunkMesh) {
 
 }
 
+// Unload will free up gpu resources
+func (world *World) Unload() {
+	for _, mesh := range world.Chunks.BackingArray() {
+		if mesh != nil {
+			mesh.Unload()
+		}
+	}
+	world.NoiseGenerator = nil
+}
+
 // Wrap rand.Rand in a mutex
 func (world *World) GetRNG() (rng *rand.Rand, unlock func()) {
 	world.rngMu.Lock()
