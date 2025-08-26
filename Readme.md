@@ -9,6 +9,10 @@ TODO
 #### Controls
 > You can press F6 to generate a new world
 > You can press F3 in-game to view the controls
+
+
+
+
 `ESC`: toggle mouse lock
 `F6`: regenerate world
 `F3`: show debug menu & controls
