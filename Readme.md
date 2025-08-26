@@ -5,10 +5,14 @@ A Minecraft clone without crafting.
 ![In-Game Screenshot](branding/Cave.png)
 
 ### Getting started
-TODO
+just download [release.zip](https://github.com/BrownNPC/Mine/releases/latest)
+
+
+
+It contains binaries for `windows` AND `linux`
+
 #### Controls
-> You can press F6 to generate a new world
-You can press F3 in-game to view the controls
+> You can press F6 to generate a new world, and F3 in-game to view the controls.
 
 
 
