@@ -71,8 +71,6 @@ func (world *World) BuildChunkMeshes() {
 			for z := range world.Depth {
 
 				chunk := world.Chunks.Get(x, y, z)
-				// Gather pointers to neighboring chunks
-
 				// Setup this chunk with its neighbors
 				vertices := chunk.BuildVerticies(world)
 				chunk.Setup(vertices)

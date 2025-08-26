@@ -70,7 +70,7 @@ func (world *World) GetBlockForYlevel(blockX, blockY, blockZ int, WorldHeight in
 	)
 
 	// bottom chunks are stone
-	if blockY < world.Height-1 {
+	if blockY < WorldHeight-1 {
 		// create caves
 		const caveScale3D = 0.09
 		const caveFloorScale2D = 0.1
