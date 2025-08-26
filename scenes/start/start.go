@@ -30,6 +30,7 @@ type Scene struct {
 	// the block currently in our hands.
 	HeldBlock        Blocks.Type
 	DebugMenuEnabled bool
+	MouseLocked      bool
 }
 
 // Load is called once the scene is switched to
@@ -41,7 +42,6 @@ func (scene *Scene) Load(ctx engine.Context) {
 
 	scene.cam = c.NewCamera(scene.world.Center(), 90, 10, 0.0036)
 	scene.moveSpeedModes = [3]int{15, 5, 35}
-
 	scene.skybox = LoadSkybox("assets/skybox.png")
 	scene.chunkShader = rl.LoadShader("shader/chunk.vert", "shader/chunk.frag")
 
@@ -58,9 +58,19 @@ func (scene *Scene) Load(ctx engine.Context) {
 	gl.Uniform1i(tx0, 0)
 	scene.atlas = rl.LoadTextureFromImage(atlasImg)
 	scene.HudAtlas = rl.LoadTextureFromImage(atlasImg)
-
+	// lock mouse
+	rl.DisableCursor()
+	scene.MouseLocked = true
 	rl.SetTargetFPS(240)
 }
+
+const controls = `ESC: toggle mouse lock
+F6: regenerate world
+F3: debug menu
+Scroll: change held block
+Shift: descend
+Space: ascend
+`
 
 // update is called every frame
 func (scene *Scene) Update(ctx engine.Context) (unload bool) {
@@ -85,7 +95,6 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 	// rl.DrawTextureRec(scene.atlas, rect, c.V2(topRightCorner-5, 5).R(), rl.White)
 
 	rl.GetKeyPressed()
-
 	rl.DrawText(fmt.Sprintf("Speed: %.2f\nCtrl to change", scene.cam.MoveSpeed), 5, 140, 20, rl.RayWhite)
 	if rl.IsKeyPressed(rl.KeyLeftControl) {
 		// 0, 1 or 2
@@ -111,6 +120,14 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 	if rl.IsKeyPressed(rl.KeyF3) {
 		scene.DebugMenuEnabled = !scene.DebugMenuEnabled
 	}
+	if rl.IsKeyPressed(rl.KeyEscape) {
+		scene.MouseLocked = !scene.MouseLocked
+		if scene.MouseLocked {
+			rl.DisableCursor()
+		} else {
+			rl.EnableCursor()
+		}
+	}
 
 	if scene.DebugMenuEnabled {
 		rl.DrawFPS(10, 10)
@@ -119,7 +136,11 @@ func (scene *Scene) Update(ctx engine.Context) (unload bool) {
 		rl.DrawText(fmt.Sprintf("World Size: %dx%dx%d (%d chunks)", scene.world.Width, scene.world.Height, scene.world.Depth, scene.world.Volume), 5, 70, 20, rl.RayWhite)
 		rl.DrawText(fmt.Sprintf("Held Block %s", scene.HeldBlock.String()), 5, 90, 20, rl.White)
 
-		// draw HeldBlock
+		// draw controls
+		textSize := rl.MeasureTextEx(rl.GetFontDefault(), controls, 20, 2)
+		x := int32(rl.GetRenderWidth()) - int32(textSize.X) - 5
+		y := int32(rl.GetRenderHeight()) - int32(textSize.Y)
+		rl.DrawText(controls, x, y, 20, rl.RayWhite)
 	}
 	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
 		scene.breakBlock()

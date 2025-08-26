@@ -29,7 +29,6 @@ func LoadSkybox(location string) Skybox {
 
 	skyboxTexture := rl.LoadTextureCubemap(skyboxImg, rl.CubemapLayoutLineVertical)
 	rl.SetMaterialTexture(skybox.Materials, rl.MapCubemap, skyboxTexture)
-	rl.DisableCursor()
 
 	return Skybox{model: skybox, Unload: func() {
 		rl.UnloadTexture(skyboxTexture)
