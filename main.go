@@ -15,7 +15,7 @@ import (
 func main() {
 	rl.SetTraceLogLevel(rl.LogDebug)
 	err := engine.Run(scenes.Registered, engine.Config{
-		WindowTitle:   "Craft",
+		WindowTitle:   "Mine",
 		MinScreenSize: c.V2(640, 480),
 		ExitKey:       rl.KeyNumLock,
 	})
